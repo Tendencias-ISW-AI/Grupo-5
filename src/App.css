@@ -91,6 +91,20 @@ input[aria-invalid="true"] { border-color: #b91c1c; }
   align-self: center;
 }
 
+.edit-button { align-self: center; }
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  min-width: 0;
+}
+.edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 @media (max-width: 52rem) {
   .app {
     margin: 1rem;

@@ -47,5 +47,22 @@ export default function useShoppingList() {
     });
   }
 
-  return { items, addProduct, togglePurchased, removeProduct };
+  function updateProduct(id, data) {
+    if (!items.some((item) => item.id === id)) {
+      return { success: false, errors: { product: 'El producto ya no está disponible.' } };
+    }
+    const validated = validateProduct(data?.name, data?.quantity);
+    if (Object.keys(validated.errors).length > 0) {
+      return { success: false, errors: validated.errors };
+    }
+    setItems((currentItems) => {
+      if (!currentItems.some((item) => item.id === id)) return currentItems;
+      return currentItems.map((item) => item.id === id
+        ? { ...item, name: validated.name, quantity: validated.quantity }
+        : item);
+    });
+    return { success: true, errors: {} };
+  }
+
+  return { items, addProduct, togglePurchased, removeProduct, updateProduct };
 }

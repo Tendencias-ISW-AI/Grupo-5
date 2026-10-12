@@ -144,7 +144,7 @@ describe('HU-02: visualización de productos', () => {
         .toBe(item.purchased ? 'Comprado' : 'Pendiente');
     });
     expect(container.querySelector('[role="status"]')).toBeNull();
-    expect(container.querySelectorAll('button:not(.remove-button), input:not([type="checkbox"])')).toHaveLength(0);
+    expect(container.querySelectorAll('button:not(.remove-button):not(.edit-button), input:not([type="checkbox"])')).toHaveLength(0);
     expect(container.querySelectorAll('button.remove-button')).toHaveLength(items.length);
     expect(container.querySelectorAll('input[type="checkbox"]')).toHaveLength(items.length);
   });
@@ -255,7 +255,7 @@ describe('HU-04: eliminar productos', () => {
     render();
     submit('Arroz', '2');
     submit('Pan', '1');
-    const buttons = container.querySelectorAll('li button');
+    const buttons = container.querySelectorAll('li button[aria-label^="Eliminar "]');
     expect(buttons).toHaveLength(2);
     expect([...buttons].map((button) => button.getAttribute('aria-label')))
       .toEqual(['Eliminar Arroz', 'Eliminar Pan']);
@@ -269,7 +269,7 @@ describe('HU-04: eliminar productos', () => {
     render();
     submit('Arroz', '2');
     if (purchased) act(() => container.querySelector('li input').click());
-    act(() => container.querySelector('li button').click());
+    act(() => container.querySelector('li button[aria-label^="Eliminar "]').click());
     expect(container.querySelector('li')).toBeNull();
     expect(container.querySelector('[role="status"]').textContent)
       .toBe('Tu lista de compras está vacía');
@@ -286,7 +286,7 @@ describe('HU-04: eliminar productos', () => {
     submit('Pan', '1');
     const rows = container.querySelectorAll('li');
     act(() => rows[1].querySelector('input').click());
-    act(() => rows[0].querySelector('button').click());
+    act(() => rows[0].querySelector('button[aria-label^="Eliminar "]').click());
     const remaining = container.querySelectorAll('li');
     expect(remaining).toHaveLength(2);
     expect(remaining[0]).toBe(rows[1]);
@@ -347,6 +347,134 @@ describe('HU-04: eliminar productos', () => {
     act(() => { current().removeProduct(third.id); });
     expect(current().items).toEqual([]);
   });
+});
+
+describe('HU-05: edición local', () => {
+  function beginEdit(index = 0) {
+    const row = container.querySelectorAll('li')[index];
+    act(() => row.querySelector('button[aria-label^="Editar "]').click());
+    return container.querySelectorAll('li')[index].querySelector('form');
+  }
+  function change(form, field, value) {
+    const input = form.querySelector(`input[name="${field}"]`);
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+    act(() => {
+      setter.call(input, value);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  }
+  function save(form) {
+    act(() => form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
+  }
+
+  it('CP-01 y CP-02: opción accesible y precarga de valores con IDs únicos', () => {
+    render(); submit('Arroz', '2'); submit('Pan', '1');
+    expect(container.querySelectorAll('button[aria-label^="Editar "]')).toHaveLength(2);
+    const first = beginEdit();
+    const second = beginEdit(1);
+    expect(first.querySelector('[name="name"]').value).toBe('Arroz');
+    expect(first.querySelector('[name="quantity"]').value).toBe('2');
+    expect(first.querySelector('[name="name"]').id).not.toBe(second.querySelector('[name="name"]').id);
+    for (const input of first.querySelectorAll('input')) {
+      expect([...first.querySelectorAll('label')].some((label) => label.htmlFor === input.id)).toBe(true);
+    }
+    expect(first.querySelector('input[type="checkbox"]')).toBeNull();
+    expect(first.querySelector('.remove-button')).toBeNull();
+  });
+
+  it.each([['name', '  Arroz integral  ', 'Arroz integral'], ['quantity', '5', 'Cantidad: 5']])(
+    'CP-03, CP-04, CP-10, CP-18 y CP-19: guarda %s y termina edición', (field, value, visible) => {
+      render(); submit('Arroz', '2');
+      const form = beginEdit(); change(form, field, value); save(form);
+      expect(container.querySelector('li form')).toBeNull();
+      expect(container.querySelector('li').textContent).toContain(visible);
+    },
+  );
+
+  it.each([
+    ['CP-05', 'name', ''], ['CP-06', 'name', '   '],
+    ['CP-07', 'quantity', '0'], ['CP-08', 'quantity', '-1'],
+    ['CP-09 decimal', 'quantity', '1.5'], ['CP-09 texto', 'quantity', 'abc'],
+    ['Cantidad obligatoria', 'quantity', ''],
+  ])('%s: conserva borrador inválido y no guarda', (_case, field, value) => {
+    render(); submit('Arroz', '2');
+    const form = beginEdit(); change(form, field, value); save(form);
+    expect(container.querySelector('li form')).toBe(form);
+    expect(form.querySelector('[role="alert"]')).not.toBeNull();
+    expect(form.querySelector(`[name="${field}"]`).value).toBe(value);
+    act(() => form.querySelector('button[type="button"]').click());
+    const reopened = beginEdit();
+    expect(reopened.querySelector('[name="name"]').value).toBe('Arroz');
+    expect(reopened.querySelector('[name="quantity"]').value).toBe('2');
+    expect(reopened.querySelector('[role="alert"]')).toBeNull();
+  });
+
+  it('CP-11: cancela ambos cambios y reabre los datos vigentes después de guardar', () => {
+    render(); submit('Arroz', '2');
+    let form = beginEdit(); change(form, 'name', 'Pan'); change(form, 'quantity', '5');
+    act(() => form.querySelector('button[type="button"]').click());
+    expect(container.querySelector('li').textContent).toContain('Arroz');
+    expect(container.querySelector('li').textContent).toContain('Cantidad: 2');
+    form = beginEdit(); change(form, 'name', 'Leche'); save(form);
+    expect(beginEdit().querySelector('[name="name"]').value).toBe('Leche');
+  });
+
+  it.each([false, true])('CP-12 a CP-15: conserva estado %s e independencia entre duplicados', (purchased) => {
+    render(); submit('Arroz', '2'); submit('Arroz', '3');
+    if (purchased) act(() => container.querySelector('li input').click());
+    const form = beginEdit(); change(form, 'name', 'Pan'); save(form);
+    const rows = container.querySelectorAll('li');
+    expect(rows[0].querySelector('input').checked).toBe(purchased);
+    expect(rows[0].querySelector('.product-name').classList.contains('product-name-purchased')).toBe(purchased);
+    expect(rows[1].querySelector('.product-name').textContent).toBe('Arroz');
+    expect(rows[1].textContent).toContain('Cantidad: 3');
+  });
+
+  it('CP-14 y CP-17: protege ID, estado, orden e inmutabilidad en el hook', () => {
+    const current = renderHook();
+    act(() => { current().addProduct('Arroz', 2); current().addProduct('Pan', 1); });
+    const [original, other] = current().items;
+    const oldItems = current().items;
+    Object.freeze(original); Object.freeze(oldItems);
+    let result;
+    act(() => { result = current().updateProduct(original.id, {
+      name: '  Leche  ', quantity: '3', id: 'otro', purchased: true,
+    }); });
+    expect(result.success).toBe(true);
+    expect(current().items[0]).toEqual({ ...original, name: 'Leche', quantity: 3 });
+    expect(current().items[1]).toBe(other);
+    expect(original.name).toBe('Arroz');
+    expect(current().items).not.toBe(oldItems);
+  });
+
+  it('conserva purchased vigente ante cambios agrupados', () => {
+    const current = renderHook();
+    act(() => { current().addProduct('Arroz', 2); });
+    const id = current().items[0].id;
+    act(() => { current().togglePurchased(id); current().updateProduct(id, { name: 'Pan', quantity: 3 }); });
+    expect(current().items[0]).toEqual({ id, name: 'Pan', quantity: 3, purchased: true });
+  });
+
+  it('CP-16: ID inexistente no modifica la colección', () => {
+    const current = renderHook();
+    act(() => { current().addProduct('Arroz', 2); });
+    const oldItems = current().items;
+    let result;
+    act(() => { result = current().updateProduct('inexistente', { name: 'Pan', quantity: 1 }); });
+    expect(result.success).toBe(false);
+    expect(current().items).toBe(oldItems);
+  });
+
+  it.each([['', 1], ['  ', 1], ['Pan', 0], ['Pan', -1], ['Pan', 1.5], ['Pan', 'abc'], ['Pan', '']])(
+    'valida (%s, %s) independientemente en el hook', (name, quantity) => {
+      const current = renderHook(); act(() => { current().addProduct('Arroz', 2); });
+      const oldItems = current().items;
+      let result;
+      act(() => { result = current().updateProduct(oldItems[0].id, { name, quantity }); });
+      expect(result.success).toBe(false);
+      expect(current().items).toBe(oldItems);
+    },
+  );
 });
 
 describe('useShoppingList: validación independiente y estado', () => {

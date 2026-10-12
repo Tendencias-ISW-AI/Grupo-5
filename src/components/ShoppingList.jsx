@@ -1,6 +1,6 @@
 import ShoppingItem from './ShoppingItem.jsx';
 
-export default function ShoppingList({ items = [], onTogglePurchased, onRemoveProduct }) {
+export default function ShoppingList({ items = [], onTogglePurchased, onRemoveProduct, onUpdateProduct }) {
   if (items.length === 0) {
     return <p role="status">Tu lista de compras está vacía</p>;
   }
@@ -13,6 +13,7 @@ export default function ShoppingList({ items = [], onTogglePurchased, onRemovePr
           item={item}
           onTogglePurchased={onTogglePurchased}
           onRemoveProduct={onRemoveProduct}
+          onUpdateProduct={onUpdateProduct}
         />
       ))}
     </ul>

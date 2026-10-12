@@ -3,7 +3,7 @@ import ShoppingList from './components/ShoppingList.jsx';
 import useShoppingList from './hooks/useShoppingList.js';
 
 export default function App() {
-  const { items, addProduct, togglePurchased, removeProduct } = useShoppingList();
+  const { items, addProduct, togglePurchased, removeProduct, updateProduct } = useShoppingList();
 
   return (
     <main className="app">
@@ -15,6 +15,7 @@ export default function App() {
         items={items}
         onTogglePurchased={togglePurchased}
         onRemoveProduct={removeProduct}
+        onUpdateProduct={updateProduct}
       />
     </main>
   );
