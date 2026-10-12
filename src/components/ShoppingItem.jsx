@@ -1,4 +1,4 @@
-export default function ShoppingItem({ item, onTogglePurchased }) {
+export default function ShoppingItem({ item, onTogglePurchased, onRemoveProduct }) {
   return (
     <li className="shopping-item">
       <input
@@ -13,6 +13,14 @@ export default function ShoppingItem({ item, onTogglePurchased }) {
       </span>
       <span>Cantidad: {item.quantity}</span>
       <span className="product-status">{item.purchased ? 'Comprado' : 'Pendiente'}</span>
+      <button
+        type="button"
+        className="remove-button"
+        aria-label={`Eliminar ${item.name}`}
+        onClick={() => onRemoveProduct(item.id)}
+      >
+        Eliminar
+      </button>
     </li>
   );
 }

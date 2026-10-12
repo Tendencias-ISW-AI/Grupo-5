@@ -40,5 +40,12 @@ export default function useShoppingList() {
     });
   }
 
-  return { items, addProduct, togglePurchased };
+  function removeProduct(id) {
+    setItems((currentItems) => {
+      if (!currentItems.some((item) => item.id === id)) return currentItems;
+      return currentItems.filter((item) => item.id !== id);
+    });
+  }
+
+  return { items, addProduct, togglePurchased, removeProduct };
 }
