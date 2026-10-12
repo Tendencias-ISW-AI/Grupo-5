@@ -105,13 +105,22 @@ npm run dev
 
 Abrir en el navegador la dirección local indicada por Vite.
 
+#### Verificación manual de HU-01
+
+1. Confirmar que inicialmente aparece el mensaje de lista vacía.
+2. Registrar `  Arroz  ` con cantidad `2`: debe aparecer `Arroz`, cantidad `2` y estado `Pendiente`, y ambos campos deben limpiarse.
+3. Intentar registrar un nombre vacío o con espacios y cantidades vacías, `0`, `-1`, `1.5` o `abc`: deben aparecer errores, conservarse los campos y mantenerse la lista sin nuevos registros.
+4. Corregir los datos y registrar nuevamente `Arroz`: deben verse dos registros independientes.
+5. Revisar la interfaz en una ventana estrecha y usar Tab y Enter para recorrer y enviar el formulario.
+6. Recargar la página: la lista vuelve a estar vacía porque HU-07 aún no está implementada.
+
 ### 5. Ejecutar las pruebas
 
 ```bash
-npm run test -- --run
+npm test
 ```
 
-El comando de pruebas estará disponible cuando se configure Vitest en el proyecto.
+Vitest está configurado con jsdom para probar el estado y las interacciones de React. `npm test` ejecuta las pruebas una vez; `npm run test:watch` las ejecuta en modo interactivo.
 
 ### 6. Generar la versión de producción
 
@@ -160,10 +169,12 @@ El código generado por IA debe ser revisado y validado por los desarrolladores 
 
 **En desarrollo académico.**
 
+HU-01 permite agregar productos con nombre y cantidad, validar los datos y visualizar los registros como pendientes. La lista funciona en memoria: se reinicia al recargar. Las demás historias, incluida la persistencia, están pendientes.
+
 Las funcionalidades se incorporan progresivamente mediante historias de usuario y control de versiones en GitHub.
 
 ## Alcance
 
 SmartList es una aplicación educativa. No contempla autenticación, colaboración entre usuarios, compras en línea, pagos ni integración con servicios externos.
 
-La información se almacena localmente en el navegador y no se sincroniza entre dispositivos.
+Cuando se implemente HU-07, la información se almacenará localmente en el navegador y no se sincronizará entre dispositivos. Actualmente la lista se mantiene únicamente en memoria.
