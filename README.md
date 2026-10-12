@@ -112,7 +112,7 @@ Abrir en el navegador la dirección local indicada por Vite.
 3. Intentar registrar un nombre vacío o con espacios y cantidades vacías, `0`, `-1`, `1.5` o `abc`: deben aparecer errores, conservarse los campos y mantenerse la lista sin nuevos registros.
 4. Corregir los datos y registrar nuevamente `Arroz`: deben verse dos registros independientes.
 5. Revisar la interfaz en una ventana estrecha y usar Tab y Enter para recorrer y enviar el formulario.
-6. Recargar la página: la lista vuelve a estar vacía porque HU-07 aún no está implementada.
+6. Recargar la página: los productos deben recuperarse con sus datos y estados.
 
 #### Verificación manual de HU-03
 
@@ -120,7 +120,7 @@ Abrir en el navegador la dirección local indicada por Vite.
 2. Marcar un checkbox: solo ese registro debe mostrar "Comprado" y su nombre tachado inmediatamente.
 3. Desmarcarlo: debe volver a "Pendiente" y recuperar el nombre sin tachado.
 4. Usar Tab para enfocar el checkbox y Espacio para marcar y desmarcar. Comprobar también la interacción con ratón y una ventana móvil.
-5. Alternar varias veces: nombre, cantidad y registros restantes deben conservarse. Al recargar, la lista vuelve a estar vacía porque todavía no hay persistencia.
+5. Alternar varias veces: nombre, cantidad y registros restantes deben conservarse. Al recargar, se recupera la última lista guardada.
 
 #### Verificación manual de HU-04
 
@@ -149,6 +149,23 @@ Abrir en el navegador la dirección local indicada por Vite.
 5. Editar y eliminar un producto visible, comprobando que los registros ocultos no cambien.
 6. Sin coincidencias deben aparecer los mensajes del filtro; si no queda ningún producto, debe mostrarse "Tu lista de compras está vacía" en cualquier filtro.
 7. Cambiar a un filtro que oculta un producto en edición descarta su borrador sin guardar. Revisar también una ventana móvil sin desbordamiento horizontal.
+
+#### Verificación manual de HU-07
+
+1. Agregar productos, editar nombre y cantidad, marcar o desmarcar y recargar: los atributos deben conservarse.
+2. Cerrar y reabrir la aplicación en el mismo navegador y origen: debe recuperarse la lista.
+3. Eliminar un producto y recargar: no debe reaparecer. Eliminar todos y recargar: debe mantenerse la lista vacía.
+4. Cambiar filtros o cancelar un borrador: no debe alterarse lo guardado. Al recargar, el filtro vuelve a Todos.
+
+#### Almacenamiento y errores
+
+Se utiliza la clave `smartlist.products`, con un arreglo JSON de productos. Se valida la colección completa sin convertir tipos ni regenerar IDs; si algún registro es inválido, se rechaza toda la colección. El montaje nunca escribe, incluso en StrictMode.
+
+Sin datos se inicia una lista vacía. Ante JSON corrupto o datos inválidos se inicia vacío en memoria y se conserva inicialmente el contenido original. La primera modificación válida confirmada reemplaza ese contenido por la colección actual en memoria; filtros, borradores, cancelaciones y operaciones rechazadas no lo reemplazan.
+
+Si falla el acceso o la lectura, se bloquean escrituras durante esa sesión para proteger datos desconocidos. Si falla una escritura, se conserva el estado en memoria y el contenido anterior; el siguiente cambio confirmado vuelve a intentar guardar. No hay indicador visual de esos fallos, por lo que los cambios en memoria pueden perderse al recargar.
+
+localStorage depende de navegador, perfil y origen (protocolo, host y puerto). Borrar sus datos elimina la lista; no hay sincronización entre dispositivos o pestañas. No se guardan filtros, formularios, borradores ni mensajes de error.
 
 ### 5. Ejecutar las pruebas
 
@@ -205,7 +222,7 @@ El código generado por IA debe ser revisado y validado por los desarrolladores 
 
 **En desarrollo académico.**
 
-HU-01 permite agregar productos con nombre y cantidad y validar los datos. HU-02 muestra todos los registros con su nombre, cantidad y estado recibido (Pendiente o Comprado), y el mensaje "Tu lista de compras está vacía" cuando no hay productos. HU-03 permite marcar y desmarcar cada producto mediante un checkbox accesible; los comprados muestran su nombre tachado. HU-04 permite eliminar cada producto mediante su botón, conservando los demás registros. Al eliminar el último, aparece el mensaje de lista vacía. HU-05 permite editar nombre y cantidad, validar, guardar o cancelar sin alterar el identificador ni el estado de compra. HU-06 permite filtrar por Todos, Pendientes y Comprados, con indicador del filtro activo y mensajes sin resultados. Los filtros conservan los datos y el orden de registro. Todas estas operaciones actualizan la interfaz inmediatamente. La lista funciona en memoria: se reinicia al recargar. Las demás historias, incluida la persistencia, están pendientes.
+HU-01 permite agregar productos con nombre y cantidad y validar los datos. HU-02 muestra todos los registros con su nombre, cantidad y estado recibido (Pendiente o Comprado), y el mensaje "Tu lista de compras está vacía" cuando no hay productos. HU-03 permite marcar y desmarcar cada producto mediante un checkbox accesible; los comprados muestran su nombre tachado. HU-04 permite eliminar cada producto mediante su botón, conservando los demás registros. Al eliminar el último, aparece el mensaje de lista vacía. HU-05 permite editar nombre y cantidad, validar, guardar o cancelar sin alterar el identificador ni el estado de compra. HU-06 permite filtrar por Todos, Pendientes y Comprados, con indicador del filtro activo y mensajes sin resultados. Los filtros conservan los datos y el orden de registro. Todas estas operaciones actualizan la interfaz inmediatamente. HU-07 guarda automáticamente los cambios de productos en localStorage y los recupera al recargar o reabrir en el mismo origen. HU-08 permanece pendiente.
 
 Las funcionalidades se incorporan progresivamente mediante historias de usuario y control de versiones en GitHub.
 
@@ -213,4 +230,4 @@ Las funcionalidades se incorporan progresivamente mediante historias de usuario 
 
 SmartList es una aplicación educativa. No contempla autenticación, colaboración entre usuarios, compras en línea, pagos ni integración con servicios externos.
 
-Cuando se implemente HU-07, la información se almacenará localmente en el navegador y no se sincronizará entre dispositivos. Actualmente la lista se mantiene únicamente en memoria.
+La información se almacena localmente en el navegador y origen utilizados, sin sincronización entre dispositivos. Si el almacenamiento no está disponible, la aplicación continúa en memoria.

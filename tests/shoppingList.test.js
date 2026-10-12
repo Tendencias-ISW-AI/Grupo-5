@@ -1,16 +1,18 @@
-import { act, createElement } from 'react';
+import { act, createElement, StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../src/App.jsx';
 import ShoppingForm from '../src/components/ShoppingForm.jsx';
 import ShoppingList from '../src/components/ShoppingList.jsx';
 import useShoppingList from '../src/hooks/useShoppingList.js';
+import { STORAGE_KEY, readShoppingList, writeShoppingList } from '../src/utils/shoppingListStorage.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 let container;
 let root;
 
 beforeEach(() => {
+  localStorage.clear();
   container = document.createElement('div');
   document.body.append(container);
   root = createRoot(container);
@@ -18,6 +20,8 @@ beforeEach(() => {
 afterEach(() => {
   act(() => root.unmount());
   container.remove();
+  vi.restoreAllMocks();
+  localStorage.clear();
 });
 
 function render(component = createElement(App)) {
@@ -608,6 +612,209 @@ describe('HU-06: filtros por estado', () => {
     selectFilter('Comprados'); selectFilter('Todos');
     expect(names()).toEqual(['Arroz']);
     expect(container.querySelector('li form')).toBeNull();
+  });
+});
+
+describe('HU-07: persistencia local', () => {
+  const fixtures = [
+    { id: 'uno', name: 'Arroz', quantity: 2, purchased: false },
+    { id: 'dos', name: 'Pan', quantity: 3, purchased: true },
+  ];
+  function storedItems() {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY));
+  }
+  function remount(component = createElement(App)) {
+    act(() => root.unmount());
+    root = createRoot(container);
+    render(component);
+  }
+
+  it('CP-01 y CP-02: guarda automáticamente y recupera tras remontar', () => {
+    render(); submit('Arroz', '2');
+    const saved = storedItems();
+    expect(saved).toEqual([{ id: expect.any(String), name: 'Arroz', quantity: 2, purchased: false }]);
+    remount();
+    expect(container.querySelector('.product-name').textContent.trim()).toBe('Arroz');
+    expect(storedItems()).toEqual(saved);
+  });
+
+  it('CP-03, CP-04 y CP-15: recupera atributos, estados y orden sin escrituras al montar', () => {
+    const serialized = JSON.stringify(fixtures);
+    localStorage.setItem(STORAGE_KEY, serialized);
+    const write = vi.spyOn(Storage.prototype, 'setItem');
+    const current = renderHook();
+    expect(current().items).toEqual(fixtures);
+    expect(write).not.toHaveBeenCalled();
+    expect(localStorage.getItem(STORAGE_KEY)).toBe(serialized);
+  });
+
+  it('CP-05: guarda edición y recupera nombre, cantidad, ID y estado', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(fixtures));
+    const current = renderHook();
+    act(() => { current().updateProduct('dos', { name: 'Pan integral', quantity: 5 }); });
+    expect(storedItems()).toEqual([fixtures[0], { ...fixtures[1], name: 'Pan integral', quantity: 5 }]);
+    remount();
+    const rows = container.querySelectorAll('li');
+    expect(rows[1].textContent).toContain('Pan integral');
+    expect(rows[1].textContent).toContain('Cantidad: 5');
+    expect(rows[1].querySelector('input').checked).toBe(true);
+  });
+
+  it('CP-06: producto eliminado no reaparece tras remontar', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(fixtures));
+    const current = renderHook();
+    act(() => { current().removeProduct('uno'); });
+    remount();
+    expect(container.querySelectorAll('li')).toHaveLength(1);
+    expect(container.querySelector('.product-name').textContent.trim()).toBe('Pan');
+    expect(storedItems()).toEqual([fixtures[1]]);
+  });
+
+  it('CP-07: persiste marcación y desmarcación con su último estado', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([fixtures[0]]));
+    const current = renderHook();
+    act(() => { current().togglePurchased('uno'); });
+    expect(storedItems()[0].purchased).toBe(true);
+    act(() => { current().togglePurchased('uno'); });
+    remount();
+    expect(container.querySelector('li input').checked).toBe(false);
+    expect(storedItems()[0].purchased).toBe(false);
+  });
+
+  it('CP-08: sin datos inicia vacío sin crear escrituras', () => {
+    const write = vi.spyOn(Storage.prototype, 'setItem');
+    render();
+    expect(container.querySelector('[role="status"]').textContent).toBe('Tu lista de compras está vacía');
+    expect(write).not.toHaveBeenCalled();
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+  });
+
+  it.each([
+    ['CP-09 JSON corrupto', '{'],
+    ['CP-10 objeto', '{}'],
+    ['CP-10 null', 'null'],
+    ['CP-11 IDs duplicados', JSON.stringify([fixtures[0], fixtures[0]])],
+    ['CP-12 incompleto', JSON.stringify([{ id: 'uno', name: 'Pan' }])],
+    ['ID vacío', JSON.stringify([{ ...fixtures[0], id: ' ' }])],
+    ['Nombre inválido', JSON.stringify([{ ...fixtures[0], name: '  ' }])],
+    ['Cantidad texto', JSON.stringify([{ ...fixtures[0], quantity: '2' }])],
+    ['Cantidad decimal', JSON.stringify([{ ...fixtures[0], quantity: 1.5 }])],
+    ['Cantidad cero', JSON.stringify([{ ...fixtures[0], quantity: 0 }])],
+    ['Estado inválido', JSON.stringify([{ ...fixtures[0], purchased: 'false' }])],
+    ['Colección parcialmente inválida', JSON.stringify([fixtures[0], { id: 'mal' }])],
+    ['Propiedad adicional', JSON.stringify([{ ...fixtures[0], extra: true }])],
+  ])('%s: rechaza toda la colección y conserva contenido hasta una modificación confirmada', (_case, serialized) => {
+    localStorage.setItem(STORAGE_KEY, serialized);
+    const write = vi.spyOn(Storage.prototype, 'setItem');
+    const current = renderHook();
+    expect(current().items).toEqual([]);
+    expect(localStorage.getItem(STORAGE_KEY)).toBe(serialized);
+    expect(write).not.toHaveBeenCalled();
+    act(() => { current().addProduct('', 2); current().removeProduct('inexistente'); });
+    expect(write).not.toHaveBeenCalled();
+    act(() => { current().addProduct('Leche', 1); });
+    expect(storedItems()).toEqual(current().items);
+    expect(storedItems()).toHaveLength(1);
+  });
+
+  it('CP-13: fallo de lectura impide escrituras durante toda la sesión', () => {
+    const serialized = JSON.stringify(fixtures);
+    localStorage.setItem(STORAGE_KEY, serialized);
+    const read = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('Lectura'); });
+    const write = vi.spyOn(Storage.prototype, 'setItem');
+    const current = renderHook();
+    expect(current().items).toEqual([]);
+    read.mockRestore();
+    act(() => { current().addProduct('Leche', 1); });
+    const id = current().items[0].id;
+    act(() => { current().togglePurchased(id); current().updateProduct(id, { name: 'Leche entera', quantity: 2 }); });
+    act(() => { current().removeProduct(id); });
+    expect(current().items).toEqual([]);
+    expect(write).not.toHaveBeenCalled();
+    expect(localStorage.getItem(STORAGE_KEY)).toBe(serialized);
+  });
+
+  it('CP-13: acceso restringido permite seguir trabajando en memoria', () => {
+    vi.spyOn(window, 'localStorage', 'get').mockImplementation(() => { throw new Error('Acceso'); });
+    const current = renderHook();
+    act(() => { current().addProduct('Arroz', 2); });
+    expect(current().items[0].name).toBe('Arroz');
+    vi.restoreAllMocks();
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+  });
+
+  it('CP-14: fallo de escritura conserva estado React y almacenamiento anterior', () => {
+    const serialized = JSON.stringify(fixtures);
+    localStorage.setItem(STORAGE_KEY, serialized);
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('Cuota'); });
+    const current = renderHook();
+    act(() => { current().addProduct('Leche', 1); });
+    expect(current().items).toHaveLength(3);
+    act(() => { current().updateProduct('uno', { name: 'Arroz integral', quantity: 5 }); });
+    expect(current().items[0].name).toBe('Arroz integral');
+    act(() => { current().togglePurchased('uno'); current().removeProduct('dos'); });
+    expect(current().items).toHaveLength(2);
+    expect(localStorage.getItem(STORAGE_KEY)).toBe(serialized);
+  });
+
+  it('CP-16 y CP-17: filtros y borradores cancelados no causan escrituras', () => {
+    const serialized = JSON.stringify(fixtures);
+    localStorage.setItem(STORAGE_KEY, serialized);
+    render();
+    const write = vi.spyOn(Storage.prototype, 'setItem');
+    const buttons = container.querySelectorAll('[role="group"] button');
+    act(() => buttons[1].click());
+    act(() => container.querySelector('li .edit-button').click());
+    const form = container.querySelector('li form');
+    const input = form.querySelector('[name="name"]');
+    act(() => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, 'Borrador');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    act(() => form.querySelector('button[type="button"]').click());
+    act(() => buttons[2].click());
+    expect(write).not.toHaveBeenCalled();
+    expect(localStorage.getItem(STORAGE_KEY)).toBe(serialized);
+    remount();
+    expect(container.querySelector('[role="group"] button').getAttribute('aria-pressed')).toBe('true');
+    expect(container.querySelector('li form')).toBeNull();
+  });
+
+  it('CP-18: guarda y recupera lista completamente vacía', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([fixtures[0]]));
+    const current = renderHook();
+    act(() => { current().removeProduct('uno'); });
+    expect(localStorage.getItem(STORAGE_KEY)).toBe('[]');
+    remount();
+    expect(container.querySelector('li')).toBeNull();
+    expect(localStorage.getItem(STORAGE_KEY)).toBe('[]');
+  });
+
+  it('CP-19: StrictMode y remontes no sobrescriben datos ni causan bucles', () => {
+    const serialized = JSON.stringify(fixtures);
+    localStorage.setItem(STORAGE_KEY, serialized);
+    const write = vi.spyOn(Storage.prototype, 'setItem');
+    const strictApp = createElement(StrictMode, null, createElement(App));
+    render(strictApp);
+    remount(strictApp);
+    expect(write).not.toHaveBeenCalled();
+    expect(localStorage.getItem(STORAGE_KEY)).toBe(serialized);
+    submit('Leche', '1');
+    expect(write).toHaveBeenCalledTimes(1);
+    const saved = storedItems();
+    remount(strictApp);
+    expect(storedItems()).toEqual(saved);
+    expect(container.querySelectorAll('li')).toHaveLength(3);
+  });
+
+  it('el módulo serializa sin mutar y gestiona fallos de serialización', () => {
+    const items = fixtures.map((item) => Object.freeze({ ...item }));
+    Object.freeze(items);
+    expect(writeShoppingList(items)).toBe(true);
+    expect(readShoppingList().items).toEqual(fixtures);
+    const cyclic = []; cyclic.push(cyclic);
+    expect(writeShoppingList(cyclic)).toBe(false);
+    expect(storedItems()).toEqual(fixtures);
   });
 });
 

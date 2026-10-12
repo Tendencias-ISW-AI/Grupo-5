@@ -212,7 +212,7 @@ Los componentes recibirán los datos actualizados a través de las propiedades d
 
 ## 9. Persistencia
 
-La persistencia se implementará en HU-07 mediante `localStorage`.
+La persistencia de HU-07 utiliza `localStorage` bajo la clave `smartlist.products`. El módulo `src/utils/shoppingListStorage.js` encapsula lectura, validación y escritura de un arreglo JSON.
 
 ### Comportamiento esperado
 
@@ -222,7 +222,11 @@ La persistencia se implementará en HU-07 mediante `localStorage`.
 - Gestionar errores de lectura, escritura y datos inválidos.
 - Inicializar una lista vacía cuando no existan datos válidos.
 
-Se utilizará una clave de almacenamiento identificable para SmartList.
+El hook recupera los datos mediante inicialización diferida de `useState`. React mantiene la única colección vigente. Un efecto dependiente de `items` guarda cambios confirmados; una referencia a la colección anterior evita escrituras durante el montaje, también bajo StrictMode. Las operaciones existentes conservan sus contratos. El estado del filtro y los borradores locales no se almacenan.
+
+La recuperación exige los cuatro atributos del modelo, IDs string no vacíos y únicos, nombres string no vacíos, cantidades numéricas enteras positivas y estados booleanos. No convierte tipos ni genera IDs; conserva los valores y el orden válidos. Si un registro falla, se rechaza la colección completa.
+
+Sin clave se inicia vacío. JSON corrupto o estructura inválida inicia vacío sin sobrescribir en el montaje; una modificación válida confirmada sustituye el contenido previo. Fallos de acceso o lectura deshabilitan escrituras durante esa sesión. Fallos de escritura mantienen el estado en memoria y se reintentan en el próximo cambio confirmado. No se muestra un aviso visual ni se implementa sincronización entre pestañas. El almacenamiento está limitado al navegador y origen utilizados.
 
 El almacenamiento local no se considerará un mecanismo de sincronización entre dispositivos.
 
@@ -263,7 +267,7 @@ Las pruebas se agregarán progresivamente con cada historia de usuario.
 
 Para HU-01, Vitest utiliza jsdom (dependencia de desarrollo) y las APIs `createRoot` y `act` de React para probar el formulario, el hook y la actualización de la lista. Estas pruebas no sustituyen la verificación en navegador.
 
-`validateProduct`, exportada desde `useShoppingList.js`, comparte las reglas de nombre y cantidad entre el formulario y el hook. `addProduct(name, quantity)` devuelve `{ success, errors }`; el formulario limpia sus campos únicamente cuando `success` es `true`. El identificador se genera con `crypto.randomUUID()` en navegadores modernos mediante localhost o HTTPS. El estado sigue en memoria, sin persistencia.
+`validateProduct`, exportada desde `useShoppingList.js`, comparte las reglas de nombre y cantidad entre el formulario y el hook. `addProduct(name, quantity)` devuelve `{ success, errors }`; el formulario limpia sus campos únicamente cuando `success` es `true`. El identificador se genera con `crypto.randomUUID()` en navegadores modernos mediante localhost o HTTPS. HU-07 sincroniza los cambios confirmados con localStorage cuando la lectura inicial permite escrituras.
 
 ## 12. Decisiones arquitectónicas
 

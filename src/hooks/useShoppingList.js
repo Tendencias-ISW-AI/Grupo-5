@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { readShoppingList, writeShoppingList } from '../utils/shoppingListStorage.js';
 
 export function validateProduct(name, quantity) {
   const errors = {};
@@ -15,7 +16,20 @@ export function validateProduct(name, quantity) {
 }
 
 export default function useShoppingList() {
-  const [items, setItems] = useState([]);
+  const storageSession = useRef({ canWrite: false });
+  const [items, setItems] = useState(() => {
+    const recovered = readShoppingList();
+    storageSession.current.canWrite = recovered.canWrite;
+    return recovered.items;
+  });
+  const previousItems = useRef(items);
+
+  useEffect(() => {
+    // El montaje (incluido StrictMode) no debe reemplazar datos preexistentes.
+    if (previousItems.current === items) return;
+    previousItems.current = items;
+    if (storageSession.current.canWrite) writeShoppingList(items);
+  }, [items]);
 
   function addProduct(name, quantity) {
     const validated = validateProduct(name, quantity);
