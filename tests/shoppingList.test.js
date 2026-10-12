@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import App from '../src/App.jsx';
 import ShoppingForm from '../src/components/ShoppingForm.jsx';
+import ShoppingList from '../src/components/ShoppingList.jsx';
 import useShoppingList from '../src/hooks/useShoppingList.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -53,7 +54,7 @@ function renderHook() {
 describe('HU-01: registro desde la interfaz', () => {
   it('CP-01: agrega Arroz, 2 y actualiza la lista inmediatamente', () => {
     render();
-    expect(container.querySelector('[role="status"]').textContent).toContain('vacía');
+    expect(container.querySelector('[role="status"]').textContent).toBe('Tu lista de compras está vacía');
     submit('Arroz', '2');
     const item = container.querySelector('li');
     expect(item.textContent).toContain('Arroz');
@@ -123,6 +124,39 @@ describe('HU-01: registro desde la interfaz', () => {
     expect(container.querySelector('#product-name').value).toBe('Arroz');
     expect(container.querySelector('#product-quantity').value).toBe('2');
     expect(container.querySelector('#quantity-error').textContent).toBe('Registro rechazado.');
+  });
+});
+
+describe('HU-02: visualización de productos', () => {
+  it('CP-03 y CP-06: muestra todos los datos de una colección con estados mixtos', () => {
+    const items = [
+      { id: 'arroz', name: 'Arroz', quantity: 2, purchased: false },
+      { id: 'pan', name: 'Pan', quantity: 3, purchased: true },
+      { id: 'leche', name: 'Leche', quantity: 1, purchased: false },
+    ];
+    render(createElement(ShoppingList, { items }));
+    const rows = container.querySelectorAll('li');
+    expect(rows).toHaveLength(items.length);
+    items.forEach((item, index) => {
+      expect(rows[index].querySelector('.product-name').textContent).toBe(item.name);
+      expect(rows[index].textContent).toContain(`Cantidad: ${item.quantity}`);
+      expect(rows[index].querySelector('.product-status').textContent)
+        .toBe(item.purchased ? 'Comprado' : 'Pendiente');
+    });
+    expect(container.querySelector('[role="status"]')).toBeNull();
+    expect(container.querySelectorAll('button, input')).toHaveLength(0);
+  });
+
+  it('CP-09: muestra registros con nombres repetidos por separado', () => {
+    render();
+    submit('Arroz', '2');
+    submit('Arroz', '3');
+    const rows = container.querySelectorAll('li');
+    expect(rows).toHaveLength(2);
+    expect([...rows].map((row) => row.querySelector('.product-name').textContent))
+      .toEqual(['Arroz', 'Arroz']);
+    expect(rows[0].textContent).toContain('Cantidad: 2');
+    expect(rows[1].textContent).toContain('Cantidad: 3');
   });
 });
 

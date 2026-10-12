@@ -2,7 +2,7 @@ import ShoppingItem from './ShoppingItem.jsx';
 
 export default function ShoppingList({ items = [] }) {
   if (items.length === 0) {
-    return <p role="status">La lista de compras está vacía.</p>;
+    return <p role="status">Tu lista de compras está vacía</p>;
   }
 
   return (

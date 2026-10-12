@@ -169,7 +169,7 @@ El código generado por IA debe ser revisado y validado por los desarrolladores 
 
 **En desarrollo académico.**
 
-HU-01 permite agregar productos con nombre y cantidad, validar los datos y visualizar los registros como pendientes. La lista funciona en memoria: se reinicia al recargar. Las demás historias, incluida la persistencia, están pendientes.
+HU-01 permite agregar productos con nombre y cantidad y validar los datos. HU-02 muestra todos los registros con su nombre, cantidad y estado recibido (Pendiente o Comprado), y el mensaje "Tu lista de compras está vacía" cuando no hay productos. Los nuevos registros aparecen inmediatamente. Todavía no existen controles para cambiar el estado de compra. La lista funciona en memoria: se reinicia al recargar. Las demás historias, incluida la persistencia, están pendientes.
 
 Las funcionalidades se incorporan progresivamente mediante historias de usuario y control de versiones en GitHub.
 
