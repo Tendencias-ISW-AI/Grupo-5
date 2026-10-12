@@ -144,7 +144,8 @@ describe('HU-02: visualización de productos', () => {
         .toBe(item.purchased ? 'Comprado' : 'Pendiente');
     });
     expect(container.querySelector('[role="status"]')).toBeNull();
-    expect(container.querySelectorAll('button, input:not([type="checkbox"])')).toHaveLength(0);
+    expect(container.querySelectorAll('button:not(.remove-button), input:not([type="checkbox"])')).toHaveLength(0);
+    expect(container.querySelectorAll('button.remove-button')).toHaveLength(items.length);
     expect(container.querySelectorAll('input[type="checkbox"]')).toHaveLength(items.length);
   });
 
@@ -246,6 +247,105 @@ describe('HU-03: marcar y desmarcar productos', () => {
     expect(current().items[1]).toBe(previousItems[1]);
     act(() => { current().togglePurchased(original.id); });
     expect(current().items[0]).toEqual(original);
+  });
+});
+
+describe('HU-04: eliminar productos', () => {
+  it('CP-01: cada producto tiene un botón accesible de eliminación', () => {
+    render();
+    submit('Arroz', '2');
+    submit('Pan', '1');
+    const buttons = container.querySelectorAll('li button');
+    expect(buttons).toHaveLength(2);
+    expect([...buttons].map((button) => button.getAttribute('aria-label')))
+      .toEqual(['Eliminar Arroz', 'Eliminar Pan']);
+    for (const button of buttons) {
+      expect(button.type).toBe('button');
+      expect(button.textContent).toBe('Eliminar');
+    }
+  });
+
+  it.each([false, true])('CP-02, CP-05, CP-06, CP-08 y CP-09: elimina el último producto (comprado=%s)', (purchased) => {
+    render();
+    submit('Arroz', '2');
+    if (purchased) act(() => container.querySelector('li input').click());
+    act(() => container.querySelector('li button').click());
+    expect(container.querySelector('li')).toBeNull();
+    expect(container.querySelector('[role="status"]').textContent)
+      .toBe('Tu lista de compras está vacía');
+    expect(container.querySelector('h1').textContent).toBe('SmartList');
+    submit('Pan', '1');
+    expect(container.querySelector('li').textContent).toContain('Pan');
+    expect(container.querySelector('[role="status"]')).toBeNull();
+  });
+
+  it('CP-03 y CP-04: elimina solo el registro seleccionado entre nombres repetidos', () => {
+    render();
+    submit('Arroz', '2');
+    submit('Arroz', '3');
+    submit('Pan', '1');
+    const rows = container.querySelectorAll('li');
+    act(() => rows[1].querySelector('input').click());
+    act(() => rows[0].querySelector('button').click());
+    const remaining = container.querySelectorAll('li');
+    expect(remaining).toHaveLength(2);
+    expect(remaining[0]).toBe(rows[1]);
+    expect(remaining[1]).toBe(rows[2]);
+    expect(remaining[0].querySelector('.product-name').textContent).toBe('Arroz');
+    expect(remaining[0].textContent).toContain('Cantidad: 3');
+    expect(remaining[0].querySelector('input').checked).toBe(true);
+    expect(remaining[0].querySelector('.product-status').textContent).toBe('Comprado');
+    act(() => remaining[0].querySelector('input').click());
+    expect(remaining[0].querySelector('.product-status').textContent).toBe('Pendiente');
+  });
+
+  it('CP-07: un ID inexistente conserva la misma colección', () => {
+    const current = renderHook();
+    const emptyItems = current().items;
+    act(() => { current().removeProduct('inexistente'); });
+    expect(current().items).toBe(emptyItems);
+    act(() => { current().addProduct('Arroz', 2); });
+    const previousItems = current().items;
+    act(() => { current().removeProduct('inexistente'); });
+    expect(current().items).toBe(previousItems);
+  });
+
+  it('CP-10: conserva orden, objetos y atributos sin mutar el estado anterior', () => {
+    const current = renderHook();
+    act(() => {
+      current().addProduct('Arroz', 2);
+      current().addProduct('Pan', 1);
+      current().addProduct('Leche', 3);
+    });
+    act(() => { current().togglePurchased(current().items[2].id); });
+    const previousItems = current().items;
+    const snapshot = previousItems.map((item) => ({ ...item }));
+    previousItems.forEach(Object.freeze);
+    Object.freeze(previousItems);
+    act(() => { current().removeProduct(previousItems[1].id); });
+    expect(previousItems).toEqual(snapshot);
+    expect(current().items).not.toBe(previousItems);
+    expect(current().items).toEqual([snapshot[0], snapshot[2]]);
+    expect(current().items[0]).toBe(previousItems[0]);
+    expect(current().items[1]).toBe(previousItems[2]);
+  });
+
+  it('CP-11: procesa eliminaciones consecutivas en una misma actualización', () => {
+    const current = renderHook();
+    act(() => {
+      current().addProduct('Arroz', 2);
+      current().addProduct('Pan', 1);
+      current().addProduct('Leche', 3);
+    });
+    const [first, second, third] = current().items;
+    act(() => {
+      current().removeProduct(first.id);
+      current().removeProduct(first.id);
+      current().removeProduct(second.id);
+    });
+    expect(current().items).toEqual([third]);
+    act(() => { current().removeProduct(third.id); });
+    expect(current().items).toEqual([]);
   });
 });
 
