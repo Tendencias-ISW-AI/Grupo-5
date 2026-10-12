@@ -267,6 +267,8 @@ Para HU-01, Vitest utiliza jsdom (dependencia de desarrollo) y las APIs `createR
 
 ## 12. Decisiones arquitectónicas
 
+HU-06 mantiene `activeFilter` en `App`, inicialmente `all`, con opciones `pending` y `purchased`. La colección visible se deriva mediante `filter` en cada render, sin otro estado de productos ni cambios en el hook. `ShoppingFilters` comunica la selección con botones y `aria-pressed`; `ShoppingList` recibe un mensaje vacío configurable. Si la colección original está vacía se conserva el mensaje original; si contiene registros sin coincidencias se utiliza el mensaje del filtro. Ocultar un producto desmonta su formulario y descarta cualquier borrador sin guardar.
+
 HU-05 utiliza un formulario local en `ShoppingItem`, con borradores de nombre y cantidad separados del estado de la lista. Cancelar descarta el borrador; Guardar utiliza `updateProduct(id, data)`, que devuelve `{ success, errors }`. Se reutiliza `validateProduct` en interfaz y hook sin modificar el formulario de registro. Solo se actualizan `name` y `quantity`; el ID y el estado de compra se conservan desde el producto vigente. Los campos de edición utilizan `useId` para sus etiquetas y errores accesibles.
 
 ### DA-01. Aplicación frontend sin backend
