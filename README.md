@@ -1,50 +1,169 @@
-# SmartList
+# SmartList — Lista de compras
 
-Aplicación web educativa para gestionar listas de compras. Forma parte de una actividad académica que utiliza Codex para desarrollo asistido, Jira para historias de usuario y GitHub para control de versiones.
+SmartList es una aplicación web que permite organizar y gestionar listas de compras de manera sencilla. Los usuarios pueden registrar productos, indicar cuáles han comprado y consultar los artículos que tienen pendientes.
 
-## Estado y alcance
+El proyecto se desarrolla como parte de una actividad académica enfocada en el uso de agentes de inteligencia artificial para asistir el proceso de desarrollo de software.
 
-Esta entrega prepara la estructura y una pantalla mínima. No implementa agregar productos, otras operaciones de negocio ni persistencia. HU-01 requiere criterios de aceptación antes de su desarrollo.
+## Objetivo del proyecto
 
-## Tecnologías
+Desarrollar una aplicación web funcional utilizando React, aplicando buenas prácticas de desarrollo, control de versiones con Git y GitHub, gestión de historias de usuario en Jira y programación asistida por inteligencia artificial mediante Codex.
 
-React, Vite, JavaScript (JSX), CSS convencional, npm y Vitest. Se utilizará localStorage en una etapa futura. No hay backend, base de datos externa ni autenticación.
+## Funcionalidades
+
+La aplicación contempla las siguientes funcionalidades:
+
+- Agregar productos indicando nombre y cantidad.
+- Visualizar los productos registrados.
+- Marcar productos como comprados o pendientes.
+- Eliminar productos.
+- Editar la información de los productos.
+- Filtrar productos según su estado.
+- Conservar la lista mediante almacenamiento local.
+- Consultar un resumen de productos comprados y pendientes.
+
+Las funcionalidades se implementarán progresivamente de acuerdo con las historias de usuario definidas en Jira.
+
+## Tecnologías utilizadas
+
+| Tecnología | Propósito |
+|---|---|
+| React | Construcción de la interfaz de usuario |
+| Vite | Entorno de desarrollo y compilación |
+| JavaScript | Implementación de la lógica de la aplicación |
+| CSS | Estilos y diseño adaptable |
+| localStorage | Persistencia local de productos |
+| Vitest | Pruebas automatizadas |
+| Git y GitHub | Control de versiones y repositorio |
+| Jira | Gestión de historias de usuario |
+| Codex | Asistencia de inteligencia artificial para el desarrollo |
+
+## Arquitectura
+
+SmartList utiliza una arquitectura frontend basada en componentes de React, organizada por responsabilidades técnicas.
+
+La interfaz se divide en componentes reutilizables y la lógica de estado se administra mediante hooks personalizados.
+
+No se requiere backend ni base de datos externa. La persistencia se realizará mediante `localStorage` del navegador.
+
+La descripción técnica se encuentra en `docs/architecture.md`.
+
+## Estructura del proyecto
+
+```text
+smartlist/
+├── AGENTS.md
+├── README.md
+├── docs/
+│   ├── requirements.md
+│   ├── architecture.md
+│   └── stories/
+├── src/
+│   ├── components/
+│   ├── hooks/
+│   ├── App.jsx
+│   ├── App.css
+│   └── main.jsx
+└── tests/
+```
+
+La estructura puede incluir otros archivos necesarios para la configuración y ejecución del proyecto.
+
+## Requisitos previos
+
+Para ejecutar SmartList localmente es necesario contar con:
+
+- Node.js en una versión LTS compatible con Vite.
+- npm.
+- Git.
+- Un editor de código, como Visual Studio Code.
 
 ## Instalación y ejecución
 
-Requisito de entorno: Node.js 22.12 o superior de la rama 22, o una versión LTS posterior compatible con las dependencias, y npm. La configuración inicial se validó con Node.js 22.14.0.
+### 1. Clonar el repositorio
 
-```sh
-npm ci
+```bash
+git clone https://github.com/Tendencias-ISW-AI/Grupo-5-SmartList.git
+```
+
+### 2. Acceder al directorio
+
+```bash
+cd Grupo-5-SmartList
+```
+
+### 3. Instalar dependencias
+
+```bash
+npm install
+```
+
+### 4. Iniciar el servidor de desarrollo
+
+```bash
 npm run dev
 ```
 
-Abrir la dirección que Vite muestra en la terminal.
+Abrir en el navegador la dirección local indicada por Vite.
 
-```sh
-npm run build
-npm run preview
-npm test
-npm run test:watch
+### 5. Ejecutar las pruebas
+
+```bash
+npm run test -- --run
 ```
 
-`build` genera `dist/`; `preview` permite revisar esa compilación localmente. `test` ejecuta las pruebas una vez y `test:watch` las mantiene en modo interactivo.
+El comando de pruebas estará disponible cuando se configure Vitest en el proyecto.
 
-## Organización
+### 6. Generar la versión de producción
 
-- `src/components/`: formulario, lista e ítem preparados para futuras historias.
-- `src/hooks/`: estado inicial de la lista, sin operaciones de negocio.
-- `src/App.jsx`, `src/App.css`, `src/main.jsx`: composición, estilos y punto de entrada.
-- `tests/shoppingList.test.js`: prueba básica del renderizado inicial.
-- `docs/requirements.md`: alcance y requisitos conocidos.
-- `docs/architecture.md`: responsabilidades y decisiones.
-- `docs/stories/HU-01-agregar-producto.md`: borrador de historia pendiente de definición.
-- `AGENTS.md`: reglas de desarrollo asistido.
+```bash
+npm run build
+```
 
-## Supuestos y pendientes
+## Organización del desarrollo
 
-La prueba se ubica en `tests/`, interpretando así la estructura solicitada. Para preparar los componentes se asume provisionalmente que un ítem tendrá `id` y `name`; no es un requisito de negocio aprobado. Faltan campos, validaciones y criterios de aceptación de HU-01, así como detalles de la persistencia futura. No se configura integración con Jira o GitHub en esta entrega.
+El trabajo se organiza en historias de usuario registradas en Jira y distribuidas en dos sprints:
 
-## Licencia
+**Sprint 1 — Funcionalidades principales**
 
-Se conserva la licencia MIT existente en `LICENSE`.
+- HU-01: Agregar productos.
+- HU-02: Visualizar productos.
+- HU-03: Marcar productos como comprados.
+- HU-04: Eliminar productos.
+
+**Sprint 2 — Mejoras y persistencia**
+
+- HU-05: Editar productos.
+- HU-06: Filtrar productos por estado.
+- HU-07: Guardar y recuperar productos.
+- HU-08: Visualizar resumen de compras.
+
+Cada historia cuenta con criterios de aceptación que permiten verificar su cumplimiento.
+
+## Desarrollo asistido por IA
+
+Codex se utiliza como agente de programación para apoyar el análisis, implementación y validación de las historias de usuario.
+
+El repositorio incluye el archivo `AGENTS.md`, que establece las instrucciones generales que debe seguir el agente.
+
+Las especificaciones funcionales y técnicas se encuentran en el directorio `docs/`.
+
+El código generado por IA debe ser revisado y validado por los desarrolladores antes de incorporarse a la rama principal.
+
+## Documentación
+
+- `AGENTS.md`: instrucciones de trabajo para Codex.
+- `docs/requirements.md`: requisitos funcionales y no funcionales.
+- `docs/architecture.md`: estructura y decisiones arquitectónicas.
+- `docs/stories/`: especificaciones de historias de usuario.
+
+## Estado del proyecto
+
+**En desarrollo académico.**
+
+Las funcionalidades se incorporan progresivamente mediante historias de usuario y control de versiones en GitHub.
+
+## Alcance
+
+SmartList es una aplicación educativa. No contempla autenticación, colaboración entre usuarios, compras en línea, pagos ni integración con servicios externos.
+
+La información se almacena localmente en el navegador y no se sincroniza entre dispositivos.
