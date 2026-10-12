@@ -261,6 +261,10 @@ Cuando sea necesario verificar interacciones de componentes React, se podrá inc
 
 Las pruebas se agregarán progresivamente con cada historia de usuario.
 
+Para HU-01, Vitest utiliza jsdom (dependencia de desarrollo) y las APIs `createRoot` y `act` de React para probar el formulario, el hook y la actualización de la lista. Estas pruebas no sustituyen la verificación en navegador.
+
+`validateProduct`, exportada desde `useShoppingList.js`, comparte las reglas de nombre y cantidad entre el formulario y el hook. `addProduct(name, quantity)` devuelve `{ success, errors }`; el formulario limpia sus campos únicamente cuando `success` es `true`. El identificador se genera con `crypto.randomUUID()` en navegadores modernos mediante localhost o HTTPS. El estado sigue en memoria, sin persistencia.
+
 ## 12. Decisiones arquitectónicas
 
 ### DA-01. Aplicación frontend sin backend

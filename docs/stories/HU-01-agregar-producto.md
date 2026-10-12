@@ -119,9 +119,10 @@ Implementar pruebas para verificar el registro, las validaciones y los criterios
 | CP-05 | Cantidad negativa | No registra y muestra error |
 | CP-06 | Cantidad decimal | No registra y muestra error |
 | CP-07 | Cantidad no numérica | No registra y muestra error |
-| CP-08 | Producto registrado exitosamente | Formulario limpio |
-| CP-09 | Dos productos con el mismo nombre | Ambos se registran con IDs diferentes |
-| CP-10 | Nombre con espacios al inicio y final | Se registra el nombre normalizado |
+| CP-08 | Producto válido | Estado inicial pendiente (`purchased: false`) |
+| CP-09 | Registro exitoso | Formulario limpio |
+| CP-10 | Nombre duplicado | Productos con IDs diferentes |
+| CP-11 | Nombre con espacios exteriores | Nombre normalizado |
 
 ## 7. Archivos involucrados
 
