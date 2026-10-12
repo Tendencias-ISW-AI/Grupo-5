@@ -105,6 +105,24 @@ input[aria-invalid="true"] { border-color: #b91c1c; }
   gap: 0.5rem;
 }
 
+.shopping-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.shopping-filters button {
+  background: white;
+  color: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.shopping-filters button[aria-pressed="true"] {
+  background: #1d4ed8;
+  color: white;
+  font-weight: bold;
+}
+
 @media (max-width: 52rem) {
   .app {
     margin: 1rem;

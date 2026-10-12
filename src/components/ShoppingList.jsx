@@ -1,8 +1,14 @@
 import ShoppingItem from './ShoppingItem.jsx';
 
-export default function ShoppingList({ items = [], onTogglePurchased, onRemoveProduct, onUpdateProduct }) {
+export default function ShoppingList({
+  items = [],
+  emptyMessage = 'Tu lista de compras está vacía',
+  onTogglePurchased,
+  onRemoveProduct,
+  onUpdateProduct,
+}) {
   if (items.length === 0) {
-    return <p role="status">Tu lista de compras está vacía</p>;
+    return <p role="status">{emptyMessage}</p>;
   }
 
   return (

@@ -477,6 +477,140 @@ describe('HU-05: edición local', () => {
   );
 });
 
+describe('HU-06: filtros por estado', () => {
+  function selectFilter(label) {
+    const group = container.querySelector('[role="group"]');
+    const button = [...group.querySelectorAll('button')].find((node) => node.textContent === label);
+    act(() => button.click());
+    return button;
+  }
+  function names() {
+    return [...container.querySelectorAll('li .product-name')].map((node) => node.textContent.trim());
+  }
+  function mixedProducts() {
+    render(); submit('Arroz', '2'); submit('Pan', '1'); submit('Leche', '3');
+    act(() => container.querySelectorAll('li input[type="checkbox"]')[1].click());
+  }
+
+  it('CP-01 y CP-02: tres botones accesibles con Todos inicialmente activo', () => {
+    render();
+    const group = container.querySelector('[role="group"]');
+    expect(group.getAttribute('aria-label')).toBe('Filtrar productos por estado');
+    const buttons = [...group.querySelectorAll('button')];
+    expect(buttons.map((button) => button.textContent)).toEqual(['Todos', 'Pendientes', 'Comprados']);
+    expect(buttons.map((button) => button.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'false']);
+    buttons.forEach((button) => expect(button.type).toBe('button'));
+  });
+
+  it('CP-03 a CP-06 y CP-10: filtra inmediatamente y conserva datos y orden al alternar', () => {
+    mixedProducts();
+    const originalRows = [...container.querySelectorAll('li')].map((row) => ({
+      name: row.querySelector('.product-name').textContent,
+      quantity: row.textContent.match(/Cantidad: \d+/)[0],
+      state: row.querySelector('.product-status').textContent,
+    }));
+    for (let index = 0; index < 3; index += 1) {
+      expect(selectFilter('Pendientes').getAttribute('aria-pressed')).toBe('true');
+      expect(names()).toEqual(['Arroz', 'Leche']);
+      selectFilter('Comprados'); expect(names()).toEqual(['Pan']);
+      selectFilter('Todos'); expect(names()).toEqual(['Arroz', 'Pan', 'Leche']);
+    }
+    expect([...container.querySelectorAll('li')].map((row) => ({
+      name: row.querySelector('.product-name').textContent,
+      quantity: row.textContent.match(/Cantidad: \d+/)[0],
+      state: row.querySelector('.product-status').textContent,
+    }))).toEqual(originalRows);
+    expect(container.querySelectorAll('[aria-pressed="true"]')).toHaveLength(1);
+  });
+
+  it('CP-07 y CP-08: mensajes específicos cuando hay productos sin coincidencias', () => {
+    render(); submit('Arroz', '2');
+    selectFilter('Comprados');
+    expect(container.querySelector('[role="status"]').textContent).toBe('No tienes productos comprados');
+    selectFilter('Todos'); act(() => container.querySelector('li input').click());
+    selectFilter('Pendientes');
+    expect(container.querySelector('[role="status"]').textContent).toBe('No tienes productos pendientes');
+  });
+
+  it('CP-09: colección original vacía conserva el mensaje en cualquier filtro', () => {
+    render();
+    for (const label of ['Todos', 'Pendientes', 'Comprados']) {
+      selectFilter(label);
+      expect(container.querySelector('[role="status"]').textContent).toBe('Tu lista de compras está vacía');
+    }
+  });
+
+  it('CP-11 y CP-12: marcar y desmarcar retira el registro de la vista correspondiente', () => {
+    render(); submit('Arroz', '2');
+    selectFilter('Pendientes'); act(() => container.querySelector('li input').click());
+    expect(names()).toEqual([]);
+    expect(container.querySelector('[role="status"]').textContent).toBe('No tienes productos pendientes');
+    selectFilter('Comprados'); expect(names()).toEqual(['Arroz']);
+    act(() => container.querySelector('li input').click());
+    expect(names()).toEqual([]);
+    selectFilter('Pendientes'); expect(names()).toEqual(['Arroz']);
+  });
+
+  it('CP-13 y CP-14: registro visible en Pendientes y oculto en Comprados', () => {
+    render(); selectFilter('Pendientes'); submit('Arroz', '2');
+    expect(names()).toEqual(['Arroz']);
+    selectFilter('Comprados'); submit('Pan', '1'); expect(names()).toEqual([]);
+    expect(container.querySelector('#product-name').value).toBe('');
+    selectFilter('Todos'); expect(names()).toEqual(['Arroz', 'Pan']);
+  });
+
+  it('CP-15: elimina el producto visible y conserva registros ocultos', () => {
+    mixedProducts(); selectFilter('Comprados');
+    act(() => container.querySelector('li button[aria-label^="Eliminar "]').click());
+    expect(names()).toEqual([]);
+    expect(container.querySelector('[role="status"]').textContent).toBe('No tienes productos comprados');
+    selectFilter('Todos'); expect(names()).toEqual(['Arroz', 'Leche']);
+    selectFilter('Pendientes');
+    while (container.querySelector('li')) {
+      act(() => container.querySelector('li button[aria-label^="Eliminar "]').click());
+    }
+    expect(container.querySelector('[role="status"]').textContent).toBe('Tu lista de compras está vacía');
+  });
+
+  it('CP-16: edita producto comprado filtrado conservando estado y datos ocultos', () => {
+    mixedProducts(); selectFilter('Comprados');
+    act(() => container.querySelector('li button[aria-label^="Editar "]').click());
+    const form = container.querySelector('li form');
+    const input = form.querySelector('[name="name"]');
+    act(() => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, 'Pan integral');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    act(() => form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
+    expect(names()).toEqual(['Pan integral']);
+    expect(container.querySelector('li input').checked).toBe(true);
+    selectFilter('Todos'); expect(names()).toEqual(['Arroz', 'Pan integral', 'Leche']);
+  });
+
+  it('CP-17: nombres repetidos se filtran por el estado de cada registro', () => {
+    render(); submit('Arroz', '2'); submit('Arroz', '3');
+    act(() => container.querySelectorAll('li input')[1].click());
+    selectFilter('Pendientes'); expect(names()).toEqual(['Arroz']);
+    expect(container.querySelector('li').textContent).toContain('Cantidad: 2');
+    selectFilter('Comprados'); expect(names()).toEqual(['Arroz']);
+    expect(container.querySelector('li').textContent).toContain('Cantidad: 3');
+    selectFilter('Todos'); expect(names()).toEqual(['Arroz', 'Arroz']);
+  });
+
+  it('descarta borrador al ocultar un producto sin cambiar los datos guardados', () => {
+    render(); submit('Arroz', '2');
+    act(() => container.querySelector('li button[aria-label^="Editar "]').click());
+    const input = container.querySelector('li [name="name"]');
+    act(() => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, 'Borrador');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    selectFilter('Comprados'); selectFilter('Todos');
+    expect(names()).toEqual(['Arroz']);
+    expect(container.querySelector('li form')).toBeNull();
+  });
+});
+
 describe('useShoppingList: validación independiente y estado', () => {
   it('CP-08: crea el modelo exacto con estado pendiente', () => {
     const current = renderHook();
