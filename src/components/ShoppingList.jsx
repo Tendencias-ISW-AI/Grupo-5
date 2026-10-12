@@ -1,6 +1,6 @@
 import ShoppingItem from './ShoppingItem.jsx';
 
-export default function ShoppingList({ items = [] }) {
+export default function ShoppingList({ items = [], onTogglePurchased }) {
   if (items.length === 0) {
     return <p role="status">Tu lista de compras está vacía</p>;
   }
@@ -8,7 +8,7 @@ export default function ShoppingList({ items = [] }) {
   return (
     <ul className="shopping-list" aria-label="Lista de compras">
       {items.map((item) => (
-        <ShoppingItem key={item.id} item={item} />
+        <ShoppingItem key={item.id} item={item} onTogglePurchased={onTogglePurchased} />
       ))}
     </ul>
   );

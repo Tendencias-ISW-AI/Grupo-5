@@ -114,6 +114,14 @@ Abrir en el navegador la dirección local indicada por Vite.
 5. Revisar la interfaz en una ventana estrecha y usar Tab y Enter para recorrer y enviar el formulario.
 6. Recargar la página: la lista vuelve a estar vacía porque HU-07 aún no está implementada.
 
+#### Verificación manual de HU-03
+
+1. Agregar varios productos, incluidos dos con el mismo nombre. Sus checkboxes deben comenzar desmarcados.
+2. Marcar un checkbox: solo ese registro debe mostrar "Comprado" y su nombre tachado inmediatamente.
+3. Desmarcarlo: debe volver a "Pendiente" y recuperar el nombre sin tachado.
+4. Usar Tab para enfocar el checkbox y Espacio para marcar y desmarcar. Comprobar también la interacción con ratón y una ventana móvil.
+5. Alternar varias veces: nombre, cantidad y registros restantes deben conservarse. Al recargar, la lista vuelve a estar vacía porque todavía no hay persistencia.
+
 ### 5. Ejecutar las pruebas
 
 ```bash
@@ -169,7 +177,7 @@ El código generado por IA debe ser revisado y validado por los desarrolladores 
 
 **En desarrollo académico.**
 
-HU-01 permite agregar productos con nombre y cantidad y validar los datos. HU-02 muestra todos los registros con su nombre, cantidad y estado recibido (Pendiente o Comprado), y el mensaje "Tu lista de compras está vacía" cuando no hay productos. Los nuevos registros aparecen inmediatamente. Todavía no existen controles para cambiar el estado de compra. La lista funciona en memoria: se reinicia al recargar. Las demás historias, incluida la persistencia, están pendientes.
+HU-01 permite agregar productos con nombre y cantidad y validar los datos. HU-02 muestra todos los registros con su nombre, cantidad y estado recibido (Pendiente o Comprado), y el mensaje "Tu lista de compras está vacía" cuando no hay productos. HU-03 permite marcar y desmarcar cada producto mediante un checkbox accesible; los comprados muestran su nombre tachado. Los registros y cambios de estado aparecen inmediatamente. La lista funciona en memoria: se reinicia al recargar. Las demás historias, incluida la persistencia, están pendientes.
 
 Las funcionalidades se incorporan progresivamente mediante historias de usuario y control de versiones en GitHub.
 

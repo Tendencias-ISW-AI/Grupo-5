@@ -31,5 +31,14 @@ export default function useShoppingList() {
     setItems((currentItems) => [...currentItems, product]);
     return { success: true, errors: {} };
   }
-  return { items, addProduct };
+  function togglePurchased(id) {
+    setItems((currentItems) => {
+      if (!currentItems.some((item) => item.id === id)) return currentItems;
+      return currentItems.map((item) =>
+        item.id === id ? { ...item, purchased: !item.purchased } : item,
+      );
+    });
+  }
+
+  return { items, addProduct, togglePurchased };
 }

@@ -144,7 +144,8 @@ describe('HU-02: visualización de productos', () => {
         .toBe(item.purchased ? 'Comprado' : 'Pendiente');
     });
     expect(container.querySelector('[role="status"]')).toBeNull();
-    expect(container.querySelectorAll('button, input')).toHaveLength(0);
+    expect(container.querySelectorAll('button, input:not([type="checkbox"])')).toHaveLength(0);
+    expect(container.querySelectorAll('input[type="checkbox"]')).toHaveLength(items.length);
   });
 
   it('CP-09: muestra registros con nombres repetidos por separado', () => {
@@ -157,6 +158,94 @@ describe('HU-02: visualización de productos', () => {
       .toEqual(['Arroz', 'Arroz']);
     expect(rows[0].textContent).toContain('Cantidad: 2');
     expect(rows[1].textContent).toContain('Cantidad: 3');
+  });
+});
+
+describe('HU-03: marcar y desmarcar productos', () => {
+  it('CP-01: cada producto nuevo tiene un checkbox accesible desmarcado', () => {
+    render();
+    submit('Arroz', '2');
+    const checkbox = container.querySelector('input[type="checkbox"]');
+    expect(checkbox.checked).toBe(false);
+    expect(checkbox.getAttribute('aria-label')).toBe('Comprado: Arroz');
+  });
+
+  it('CP-02, CP-03 y CP-07: marcar actualiza checkbox, indicador y tachado inmediatamente', () => {
+    render();
+    submit('Arroz', '2');
+    const checkbox = container.querySelector('input[type="checkbox"]');
+    const name = container.querySelector('.product-name');
+    act(() => checkbox.click());
+    expect(checkbox.checked).toBe(true);
+    expect(container.querySelector('.product-status').textContent).toBe('Comprado');
+    expect(name.classList.contains('product-name-purchased')).toBe(true);
+    expect(container.querySelector('.product-status').classList.contains('product-name-purchased')).toBe(false);
+  });
+
+  it('CP-04 y CP-05: desmarcar restaura estado y apariencia', () => {
+    render();
+    submit('Arroz', '2');
+    const checkbox = container.querySelector('input[type="checkbox"]');
+    act(() => checkbox.click());
+    act(() => checkbox.click());
+    expect(checkbox.checked).toBe(false);
+    expect(container.querySelector('.product-status').textContent).toBe('Pendiente');
+    expect(container.querySelector('.product-name').classList.contains('product-name-purchased')).toBe(false);
+  });
+
+  it('CP-06: cambia solo el registro seleccionado entre nombres repetidos', () => {
+    render();
+    submit('Arroz', '2');
+    submit('Arroz', '3');
+    const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+    act(() => checkboxes[1].click());
+    expect(checkboxes[0].checked).toBe(false);
+    expect(checkboxes[1].checked).toBe(true);
+    expect([...container.querySelectorAll('.product-status')].map((node) => node.textContent))
+      .toEqual(['Pendiente', 'Comprado']);
+  });
+
+  it('CP-08: procesa alternancias consecutivas incluso en una misma actualización', () => {
+    const current = renderHook();
+    act(() => { current().addProduct('Arroz', 2); });
+    const id = current().items[0].id;
+    act(() => {
+      current().togglePurchased(id);
+      current().togglePurchased(id);
+      current().togglePurchased(id);
+    });
+    expect(current().items[0].purchased).toBe(true);
+    act(() => { current().togglePurchased(id); });
+    expect(current().items[0].purchased).toBe(false);
+  });
+
+  it('CP-09: un ID inexistente conserva la colección y sus registros', () => {
+    const current = renderHook();
+    act(() => { current().togglePurchased('inexistente'); });
+    expect(current().items).toEqual([]);
+    act(() => { current().addProduct('Arroz', 2); });
+    const previousItems = current().items;
+    act(() => { current().togglePurchased('inexistente'); });
+    expect(current().items).toBe(previousItems);
+  });
+
+  it('CP-02, CP-06 y CP-10: invierte purchased sin mutar ni alterar otros atributos o productos', () => {
+    const current = renderHook();
+    act(() => {
+      current().addProduct('Arroz', 2);
+      current().addProduct('Pan', 1);
+    });
+    const previousItems = current().items;
+    const original = previousItems[0];
+    Object.freeze(original);
+    Object.freeze(previousItems);
+    act(() => { current().togglePurchased(original.id); });
+    expect(current().items).not.toBe(previousItems);
+    expect(current().items[0]).toEqual({ ...original, purchased: true });
+    expect(original.purchased).toBe(false);
+    expect(current().items[1]).toBe(previousItems[1]);
+    act(() => { current().togglePurchased(original.id); });
+    expect(current().items[0]).toEqual(original);
   });
 });
 
