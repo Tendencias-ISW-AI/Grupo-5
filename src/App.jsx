@@ -3,7 +3,7 @@ import ShoppingList from './components/ShoppingList.jsx';
 import useShoppingList from './hooks/useShoppingList.js';
 
 export default function App() {
-  const { items, addProduct } = useShoppingList();
+  const { items, addProduct, togglePurchased } = useShoppingList();
 
   return (
     <main className="app">
@@ -11,7 +11,7 @@ export default function App() {
       <p>Aplicación educativa para gestionar listas de compras.</p>
       <ShoppingForm onAddProduct={addProduct} />
       <h2>Lista de compras</h2>
-      <ShoppingList items={items} />
+      <ShoppingList items={items} onTogglePurchased={togglePurchased} />
     </main>
   );
 }

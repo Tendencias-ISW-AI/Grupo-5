@@ -31,7 +31,7 @@ h1 {
   gap: 0.25rem;
 }
 
-input, button {
+input:not([type="checkbox"]), button {
   font: inherit;
   padding: 0.65rem;
   border: 1px solid #6b7280;
@@ -71,6 +71,20 @@ input[aria-invalid="true"] { border-color: #b91c1c; }
 }
 
 .product-status { color: #374151; }
+
+.purchase-checkbox {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+  align-self: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: #1d4ed8;
+}
+
+.product-name-purchased {
+  text-decoration: line-through;
+}
 
 @media (max-width: 52rem) {
   .app {
