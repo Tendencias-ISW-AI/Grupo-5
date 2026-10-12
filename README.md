@@ -130,6 +130,16 @@ Abrir en el navegador la dirección local indicada por Vite.
 4. Agregar nuevamente un producto y marcarlo para comprobar que las funcionalidades anteriores siguen disponibles.
 5. Revisar el botón en escritorio y una ventana móvil; usar Tab y Enter para eliminar con teclado.
 
+#### Verificación manual de HU-05
+
+1. Agregar dos productos con el mismo nombre y marcar uno como comprado.
+2. Pulsar Editar: deben aparecer el nombre y la cantidad actuales, junto con Guardar y Cancelar.
+3. Modificar ambos campos y guardar: solo ese registro debe cambiar, conservando su estado de compra y tachado cuando corresponda.
+4. Intentar guardar nombre vacío o con espacios, y cantidades vacías, cero, negativas, decimales o texto: deben mostrarse errores y conservarse las entradas.
+5. Cancelar y reabrir: deben recuperarse los datos guardados y desaparecer los errores anteriores.
+6. Usar Tab para recorrer los campos y botones, y Enter para guardar. Revisar escritorio y una ventana móvil sin desbordamiento horizontal.
+7. Agregar, marcar y eliminar después de editar para comprobar las funcionalidades anteriores.
+
 ### 5. Ejecutar las pruebas
 
 ```bash
@@ -185,7 +195,7 @@ El código generado por IA debe ser revisado y validado por los desarrolladores 
 
 **En desarrollo académico.**
 
-HU-01 permite agregar productos con nombre y cantidad y validar los datos. HU-02 muestra todos los registros con su nombre, cantidad y estado recibido (Pendiente o Comprado), y el mensaje "Tu lista de compras está vacía" cuando no hay productos. HU-03 permite marcar y desmarcar cada producto mediante un checkbox accesible; los comprados muestran su nombre tachado. HU-04 permite eliminar cada producto mediante su botón, conservando los demás registros. Al eliminar el último, aparece el mensaje de lista vacía. Los registros, cambios de estado y eliminaciones aparecen inmediatamente. La lista funciona en memoria: se reinicia al recargar. Las demás historias, incluida la persistencia, están pendientes.
+HU-01 permite agregar productos con nombre y cantidad y validar los datos. HU-02 muestra todos los registros con su nombre, cantidad y estado recibido (Pendiente o Comprado), y el mensaje "Tu lista de compras está vacía" cuando no hay productos. HU-03 permite marcar y desmarcar cada producto mediante un checkbox accesible; los comprados muestran su nombre tachado. HU-04 permite eliminar cada producto mediante su botón, conservando los demás registros. Al eliminar el último, aparece el mensaje de lista vacía. HU-05 permite editar nombre y cantidad, validar, guardar o cancelar sin alterar el identificador ni el estado de compra. Todas estas operaciones actualizan la interfaz inmediatamente. La lista funciona en memoria: se reinicia al recargar. Las demás historias, incluida la persistencia, están pendientes.
 
 Las funcionalidades se incorporan progresivamente mediante historias de usuario y control de versiones en GitHub.
 
