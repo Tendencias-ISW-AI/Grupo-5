@@ -818,6 +818,80 @@ describe('HU-07: persistencia local', () => {
   });
 });
 
+describe('HU-08: resumen global de compras', () => {
+  function expectCounts(total, pending, purchased) {
+    const summary = container.querySelector('section[aria-labelledby]');
+    expect(summary.querySelector('h2').textContent).toBe('Resumen de compras');
+    expect([...summary.querySelectorAll('dt')].map((node) => node.textContent))
+      .toEqual(['Total de productos', 'Pendientes', 'Comprados']);
+    const values = [...summary.querySelectorAll('dd')].map((node) => Number(node.textContent));
+    expect(values).toEqual([total, pending, purchased]);
+    expect(values[0]).toBe(values[1] + values[2]);
+  }
+
+  it('CP-01, CP-02, CP-05 y CP-15: cero inicial y conteos de registros al agregar', () => {
+    render(); expectCounts(0, 0, 0);
+    submit('Arroz', '8'); expectCounts(1, 1, 0);
+    submit('Pan', '3'); expectCounts(2, 2, 0);
+  });
+
+  it('CP-03, CP-06 y CP-07: marcar y desmarcar actualizan indicadores', () => {
+    render(); submit('Arroz', '2');
+    const checkbox = container.querySelector('li input');
+    act(() => checkbox.click()); expectCounts(1, 0, 1);
+    act(() => checkbox.click()); expectCounts(1, 1, 0);
+  });
+
+  it('CP-04, CP-08, CP-09 y CP-14: elimina pendientes, comprados y el último registro', () => {
+    render(); submit('Arroz', '2'); submit('Pan', '3'); submit('Leche', '1');
+    act(() => container.querySelectorAll('li input')[1].click()); expectCounts(3, 2, 1);
+    act(() => container.querySelector('button[aria-label="Eliminar Arroz"]').click()); expectCounts(2, 1, 1);
+    act(() => container.querySelector('button[aria-label="Eliminar Pan"]').click()); expectCounts(1, 1, 0);
+    act(() => container.querySelector('button[aria-label="Eliminar Leche"]').click()); expectCounts(0, 0, 0);
+    expect(container.querySelector('[role="status"]').textContent).toBe('Tu lista de compras está vacía');
+  });
+
+  it('CP-10: editar nombre y cantidad no altera indicadores ni almacena contadores', () => {
+    render(); submit('Arroz', '2');
+    act(() => container.querySelector('li input').click()); expectCounts(1, 0, 1);
+    act(() => container.querySelector('button[aria-label="Editar Arroz"]').click());
+    const form = container.querySelector('li form');
+    for (const [field, value] of [['name', 'Pan'], ['quantity', '20']]) {
+      const input = form.querySelector(`[name="${field}"]`);
+      act(() => {
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, value);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    }
+    expectCounts(1, 0, 1);
+    act(() => form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
+    expectCounts(1, 0, 1);
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    expect(saved).toEqual([{ id: expect.any(String), name: 'Pan', quantity: 20, purchased: true }]);
+  });
+
+  it('CP-11 a CP-13: recuperación y filtros conservan resumen global sin escrituras extra', () => {
+    const fixtures = [
+      { id: 'uno', name: 'Arroz', quantity: 8, purchased: false },
+      { id: 'dos', name: 'Pan', quantity: 5, purchased: true },
+      { id: 'tres', name: 'Leche', quantity: 2, purchased: false },
+    ];
+    const serialized = JSON.stringify(fixtures);
+    localStorage.setItem(STORAGE_KEY, serialized);
+    const write = vi.spyOn(Storage.prototype, 'setItem');
+    render(); expectCounts(3, 2, 1);
+    const filters = container.querySelectorAll('[role="group"] button');
+    act(() => filters[1].click()); expectCounts(3, 2, 1);
+    expect(container.querySelectorAll('li')).toHaveLength(2);
+    act(() => filters[2].click()); expectCounts(3, 2, 1);
+    expect(container.querySelectorAll('li')).toHaveLength(1);
+    render(); expectCounts(3, 2, 1);
+    expect(write).not.toHaveBeenCalled();
+    expect(localStorage.getItem(STORAGE_KEY)).toBe(serialized);
+    expect(localStorage.length).toBe(1);
+  });
+});
+
 describe('useShoppingList: validación independiente y estado', () => {
   it('CP-08: crea el modelo exacto con estado pendiente', () => {
     const current = renderHook();
