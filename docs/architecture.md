@@ -126,7 +126,7 @@ Responsabilidades:
 - Notificar el filtro seleccionado.
 - Identificar visualmente el filtro activo.
 
-Se implementará en HU-06.
+Implementado en HU-06.
 
 ### 5.6. ShoppingSummary.jsx
 
@@ -138,7 +138,7 @@ Responsabilidades:
 - Mostrar productos pendientes.
 - Mostrar productos comprados.
 
-Se implementará en HU-08.
+Implementado en HU-08 como componente de presentación que recibe `total`, `pending` y `purchased`. Utiliza una sección identificada y una lista de descripción con etiquetas y valores.
 
 ## 6. Gestión del estado
 
@@ -270,6 +270,8 @@ Para HU-01, Vitest utiliza jsdom (dependencia de desarrollo) y las APIs `createR
 `validateProduct`, exportada desde `useShoppingList.js`, comparte las reglas de nombre y cantidad entre el formulario y el hook. `addProduct(name, quantity)` devuelve `{ success, errors }`; el formulario limpia sus campos únicamente cuando `success` es `true`. El identificador se genera con `crypto.randomUUID()` en navegadores modernos mediante localhost o HTTPS. HU-07 sincroniza los cambios confirmados con localStorage cuando la lectura inicial permite escrituras.
 
 ## 12. Decisiones arquitectónicas
+
+HU-08 calcula los indicadores durante el render de `App` desde la colección completa `items`: longitud total y conteos por `purchased === false` o `purchased === true`. `quantity` no interviene. `ShoppingSummary` recibe los valores derivados, sin estado adicional, efectos o acceso al almacenamiento. El resumen es global e independiente de `visibleItems`; agregar, eliminar o alternar estado actualiza los indicadores, mientras editar nombre o cantidad no los altera. Los contadores no se almacenan ni cambian las políticas de HU-07.
 
 HU-06 mantiene `activeFilter` en `App`, inicialmente `all`, con opciones `pending` y `purchased`. La colección visible se deriva mediante `filter` en cada render, sin otro estado de productos ni cambios en el hook. `ShoppingFilters` comunica la selección con botones y `aria-pressed`; `ShoppingList` recibe un mensaje vacío configurable. Si la colección original está vacía se conserva el mensaje original; si contiene registros sin coincidencias se utiliza el mensaje del filtro. Ocultar un producto desmonta su formulario y descarta cualquier borrador sin guardar.
 

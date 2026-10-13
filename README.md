@@ -167,6 +167,16 @@ Si falla el acceso o la lectura, se bloquean escrituras durante esa sesión para
 
 localStorage depende de navegador, perfil y origen (protocolo, host y puerto). Borrar sus datos elimina la lista; no hay sincronización entre dispositivos o pestañas. No se guardan filtros, formularios, borradores ni mensajes de error.
 
+#### Verificación manual de HU-08
+
+1. Con la lista vacía, comprobar Total de productos, Pendientes y Comprados en cero.
+2. Agregar un producto con cantidad mayor que uno: cuenta un registro, no la suma de cantidades.
+3. Marcar y desmarcar: debe trasladarse entre pendientes y comprados sin cambiar el total.
+4. Editar nombre y cantidad: los contadores no deben cambiar. Eliminar pendientes y comprados: debe disminuir el total y el indicador correspondiente.
+5. Cambiar entre filtros: el resumen siempre representa toda la lista, incluso si no hay resultados visibles.
+6. Recargar: el resumen debe calcularse desde los productos recuperados. Al eliminar el último, los tres indicadores deben volver a cero.
+7. Revisar escritorio y móvil, comprobando etiquetas legibles y ausencia de desbordamiento horizontal.
+
 ### 5. Ejecutar las pruebas
 
 ```bash
@@ -222,7 +232,7 @@ El código generado por IA debe ser revisado y validado por los desarrolladores 
 
 **En desarrollo académico.**
 
-HU-01 permite agregar productos con nombre y cantidad y validar los datos. HU-02 muestra todos los registros con su nombre, cantidad y estado recibido (Pendiente o Comprado), y el mensaje "Tu lista de compras está vacía" cuando no hay productos. HU-03 permite marcar y desmarcar cada producto mediante un checkbox accesible; los comprados muestran su nombre tachado. HU-04 permite eliminar cada producto mediante su botón, conservando los demás registros. Al eliminar el último, aparece el mensaje de lista vacía. HU-05 permite editar nombre y cantidad, validar, guardar o cancelar sin alterar el identificador ni el estado de compra. HU-06 permite filtrar por Todos, Pendientes y Comprados, con indicador del filtro activo y mensajes sin resultados. Los filtros conservan los datos y el orden de registro. Todas estas operaciones actualizan la interfaz inmediatamente. HU-07 guarda automáticamente los cambios de productos en localStorage y los recupera al recargar o reabrir en el mismo origen. HU-08 permanece pendiente.
+HU-01 permite agregar productos con nombre y cantidad y validar los datos. HU-02 muestra todos los registros con su nombre, cantidad y estado recibido (Pendiente o Comprado), y el mensaje "Tu lista de compras está vacía" cuando no hay productos. HU-03 permite marcar y desmarcar cada producto mediante un checkbox accesible; los comprados muestran su nombre tachado. HU-04 permite eliminar cada producto mediante su botón, conservando los demás registros. Al eliminar el último, aparece el mensaje de lista vacía. HU-05 permite editar nombre y cantidad, validar, guardar o cancelar sin alterar el identificador ni el estado de compra. HU-06 permite filtrar por Todos, Pendientes y Comprados, con indicador del filtro activo y mensajes sin resultados. Los filtros conservan los datos y el orden de registro. Todas estas operaciones actualizan la interfaz inmediatamente. HU-07 guarda automáticamente los cambios de productos en localStorage y los recupera al recargar o reabrir en el mismo origen. HU-08 muestra el total global de registros, pendientes y comprados, con actualización automática y sin depender del filtro. Las ocho historias del alcance inicial están implementadas; la revisión final del proyecto sigue correspondiendo al equipo.
 
 Las funcionalidades se incorporan progresivamente mediante historias de usuario y control de versiones en GitHub.
 
