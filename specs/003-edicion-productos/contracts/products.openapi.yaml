@@ -1,0 +1,84 @@
+openapi: 3.0.3
+info:
+  title: SmartList SMARLIST-13 HU-12
+  version: 1.0.0
+paths:
+  /api/products/{id}:
+    put:
+      summary: Editar nombre y cantidad conservando identidad y estado
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 36 }
+          description: String bien formado de hasta36 unidades UTF-16 sin espacios externos; no se exige UUID; validar antes de SQL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name, quantity]
+              properties:
+                name:
+                  type: string
+                  description: trim,no vacío,máximo150 caracteres Unicode,UTF-8 válido
+                quantity: { type: integer, minimum: 1, maximum: 2147483647 }
+      responses:
+        '200':
+          description: Actualizado o mismos valores; producto directo con id/purchased conservados
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [id, name, quantity, purchased]
+                properties:
+                  id: { type: string }
+                  name: { type: string, minLength: 1, maxLength: 150 }
+                  quantity: { type: integer, minimum: 1, maximum: 2147483647 }
+                  purchased: { type: boolean }
+        '400':
+          description: ID/cuerpo inválidos; error.message público y sin modificación
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicError'
+        '404':
+          description: Producto no encontrado.; error.message público y sin creación
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicError'
+              example: { error: { message: Producto no encontrado. } }
+        '503':
+          description: '{"error":"Servicio temporalmente no disponible"}'
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [error]
+                additionalProperties: false
+                properties:
+                  error: { type: string, enum: [Servicio temporalmente no disponible] }
+        '500':
+          description: Error interno del servidor., contrato genérico existente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicError'
+              example: { error: { message: Error interno del servidor. } }
+components:
+  schemas:
+    PublicError:
+      type: object
+      required: [error]
+      additionalProperties: false
+      properties:
+        error:
+          type: object
+          required: [message]
+          additionalProperties: false
+          properties:
+            message: { type: string }

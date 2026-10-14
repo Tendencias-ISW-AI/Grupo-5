@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { insertProduct, listProducts } from '../repositories/productRepository.js';
+import { insertProduct, listProducts, updateProductById } from '../repositories/productRepository.js';
 
 const unavailableCodes = new Set([
   'ECONNREFUSED', 'ETIMEDOUT', 'ENOTFOUND', 'EHOSTUNREACH', 'ECONNRESET',
@@ -21,7 +21,7 @@ function invalidRequest(message) {
   throw error;
 }
 
-export async function createProduct(data) {
+function validateProductData(data) {
   if (!data || typeof data !== 'object' || Array.isArray(data)
     || Object.keys(data).length !== 2 || !Object.hasOwn(data, 'name') || !Object.hasOwn(data, 'quantity')) {
     invalidRequest('La solicitud debe contener únicamente nombre y cantidad.');
@@ -36,13 +36,37 @@ export async function createProduct(data) {
   if (!Number.isInteger(data.quantity) || data.quantity < 1 || data.quantity > 2147483647) {
     invalidRequest('La cantidad debe ser un número entero entre 1 y 2147483647.');
   }
-  const product = { id: randomUUID(), name, quantity: data.quantity, purchased: false };
+  return { name, quantity: data.quantity };
+}
+
+export async function createProduct(data) {
+  const { name, quantity } = validateProductData(data);
+  const product = { id: randomUUID(), name, quantity, purchased: false };
   try {
     await insertProduct(product);
   } catch (error) {
     throwStorageError(error);
   }
   return product;
+}
+
+export async function updateProduct(id, data) {
+  if (typeof id !== 'string' || !id.isWellFormed() || !id.length || id.length > 36 || id.trim() !== id) {
+    invalidRequest('El identificador debe ser un string válido de hasta 36 caracteres, sin espacios externos.');
+  }
+  const editable = validateProductData(data);
+  let row;
+  try {
+    row = await updateProductById(id, editable);
+  } catch (error) {
+    throwStorageError(error);
+  }
+  if (!row) {
+    const error = new Error('Producto no encontrado.');
+    error.status = 404;
+    throw error;
+  }
+  return { id: row.id, name: row.name, quantity: row.quantity, purchased: row.purchased === 1 };
 }
 
 export async function getProducts() {
