@@ -28,7 +28,7 @@ export default function App() {
   return (
     <main className="app">
       <header className="app-header">
-        <h1>🛒 SmartList</h1>
+        <h1>SmartList</h1>
         <p>Organiza tus compras de forma rápida y sencilla.</p>
       </header>
       <ShoppingForm onAddProduct={addProduct} />
