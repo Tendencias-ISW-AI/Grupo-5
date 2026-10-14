@@ -340,7 +340,11 @@ POST y PUT aceptan `category` opcional. POST sin categoría crea el producto en 
 
 La columna es `category VARCHAR(30) NOT NULL DEFAULT 'Otros'`. Para bases existentes, ejecutar `npm run db:init`: si la tabla `products` coincide con la estructura anterior, se agrega la columna con `database/add-product-category.sql` y todos los productos existentes quedan en `Otros` (la salida indica `"categoryAdded":true`). Repetir la inicialización no ejecuta DDL.
 
-En la interfaz (SMARLIST-22), el formulario de registro y la edición de cada producto tienen un selector "Categoría" (registro con "Otros" por defecto; edición precargada con la categoría actual) y cada producto de la lista muestra su categoría. El cliente `src/services/productsApi.js` exige una categoría válida en cada producto recibido. La lista de categorías del frontend (`src/utils/productCategories.js`) replica la del backend y una prueba verifica que coinciden. Artefactos: `specs/007-categorias-interfaz/`. Artefactos y resultados: `specs/006-categorias-productos/`.
+En la interfaz (SMARLIST-22), el formulario de registro y la edición de cada producto tienen un selector "Categoría" (registro con "Otros" por defecto; edición precargada con la categoría actual) y cada producto de la lista muestra su categoría. El cliente `src/services/productsApi.js` exige una categoría válida en cada producto recibido. La lista de categorías del frontend (`src/utils/productCategories.js`) replica la del backend y una prueba verifica que coinciden. Artefactos: `specs/007-categorias-interfaz/`.
+
+### HU-16 / SMARLIST-20: filtrar y agrupar por categoría
+
+Junto a los filtros de estado hay un selector "Categoría" ("Todas" y las 8 categorías) que se combina con el estado y con la búsqueda por nombre. Si la categoría no tiene coincidencias se muestra "No hay productos en la categoría X" (o "pendientes"/"comprados" según el filtro de estado). El botón "Agrupar por categoría" alterna entre la lista normal y una vista con una sección por categoría, en el orden fijo, con encabezado y la cantidad de productos pendientes de esa categoría en toda la lista; las categorías sin productos visibles no se muestran. El resumen sigue siendo global. Filtros y agrupación no se guardan al recargar. Artefactos: `specs/008-filtrar-agrupar-categoria/`. Artefactos y resultados: `specs/006-categorias-productos/`.
 
 ### Spec Kit con Codex
 

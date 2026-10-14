@@ -5,31 +5,29 @@ import ShoppingForm from "./components/ShoppingForm.jsx";
 import ShoppingList from "./components/ShoppingList.jsx";
 import ShoppingSummary from "./components/ShoppingSummary.jsx";
 import useShoppingList from "./hooks/useShoppingList.js";
-import { filterProducts } from "./utils/productFilters.js";
+import { emptyMessageFor, filterProducts, groupByCategory } from "./utils/productFilters.js";
 
 export default function App() {
   const { items, loadState, pending: busy, error, addProduct, togglePurchased, removeProduct, updateProduct } =
     useShoppingList();
   const [activeFilter, setActiveFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [groupedView, setGroupedView] = useState(false);
   const total = items.length;
   const pending = items.filter((item) => item.purchased === false).length;
   const purchased = items.filter((item) => item.purchased === true).length;
   const visibleItems = filterProducts(items, {
     status: activeFilter,
     query: searchQuery,
+    category: categoryFilter,
   });
-  const trimmedQuery = searchQuery.trim();
-  const emptyMessage =
-    items.length === 0
-      ? "Tu lista de compras está vacía"
-      : trimmedQuery !== ""
-        ? `No se encontraron productos que coincidan con "${trimmedQuery}"`
-        : activeFilter === "all"
-          ? "Tu lista de compras está vacía"
-          : activeFilter === "pending"
-            ? "No tienes productos pendientes"
-            : "No tienes productos comprados";
+  const emptyMessage = emptyMessageFor({
+    total,
+    query: searchQuery,
+    status: activeFilter,
+    category: categoryFilter,
+  });
 
   return (
     <main className="app">
@@ -45,11 +43,16 @@ export default function App() {
       <ShoppingFilters
         activeFilter={activeFilter}
         onFilterChange={setActiveFilter}
+        categoryFilter={categoryFilter}
+        onCategoryChange={setCategoryFilter}
+        groupByCategory={groupedView}
+        onGroupByCategoryChange={setGroupedView}
       />
       {loadState === 'loading' && <p role="status">Cargando productos...</p>}
       {loadState === 'error' && <p>La lista no pudo cargarse. Comprueba la conexión y recarga la página.</p>}
       {loadState === 'ready' && <ShoppingList
         items={visibleItems}
+        groups={groupedView ? groupByCategory(visibleItems, items) : undefined}
         emptyMessage={emptyMessage}
         onTogglePurchased={togglePurchased}
         onRemoveProduct={removeProduct}
