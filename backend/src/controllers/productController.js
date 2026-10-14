@@ -1,4 +1,4 @@
-import { createProduct, getProducts, updateProduct } from '../services/productService.js';
+import { createProduct, deleteProduct, getProducts, updateProduct } from '../services/productService.js';
 
 export async function getAllProducts(_request, response, next) {
   try {
@@ -19,6 +19,15 @@ export async function registerProduct(request, response, next) {
 export async function editProduct(request, response, next) {
   try {
     response.status(200).json(await updateProduct(request.params.id, request.body));
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function removeProduct(request, response, next) {
+  try {
+    await deleteProduct(request.params.id);
+    response.status(204).end();
   } catch (error) {
     next(error);
   }

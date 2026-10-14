@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { insertProduct, listProducts, updateProductById } from '../repositories/productRepository.js';
+import { deleteProductById, insertProduct, listProducts, updateProductById } from '../repositories/productRepository.js';
 
 const unavailableCodes = new Set([
   'ECONNREFUSED', 'ETIMEDOUT', 'ENOTFOUND', 'EHOSTUNREACH', 'ECONNRESET',
@@ -18,6 +18,18 @@ function throwStorageError(error) {
 function invalidRequest(message) {
   const error = new Error(message);
   error.status = 400;
+  throw error;
+}
+
+function validateProductId(id) {
+  if (typeof id !== 'string' || !id.isWellFormed() || !id.length || id.length > 36 || id.trim() !== id) {
+    invalidRequest('El identificador debe ser un string válido de hasta 36 caracteres, sin espacios externos.');
+  }
+}
+
+function productNotFound() {
+  const error = new Error('Producto no encontrado.');
+  error.status = 404;
   throw error;
 }
 
@@ -51,9 +63,7 @@ export async function createProduct(data) {
 }
 
 export async function updateProduct(id, data) {
-  if (typeof id !== 'string' || !id.isWellFormed() || !id.length || id.length > 36 || id.trim() !== id) {
-    invalidRequest('El identificador debe ser un string válido de hasta 36 caracteres, sin espacios externos.');
-  }
+  validateProductId(id);
   const editable = validateProductData(data);
   let row;
   try {
@@ -61,12 +71,23 @@ export async function updateProduct(id, data) {
   } catch (error) {
     throwStorageError(error);
   }
-  if (!row) {
-    const error = new Error('Producto no encontrado.');
-    error.status = 404;
-    throw error;
-  }
+  if (!row) productNotFound();
   return { id: row.id, name: row.name, quantity: row.quantity, purchased: row.purchased === 1 };
+}
+
+export async function deleteProduct(id) {
+  validateProductId(id);
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    invalidRequest('El identificador debe tener formato UUID válido.');
+  }
+  let affectedRows;
+  try {
+    affectedRows = await deleteProductById(id);
+  } catch (error) {
+    throwStorageError(error);
+  }
+  if (affectedRows === 0) productNotFound();
+  if (affectedRows !== 1) throw new Error('Resultado de eliminación inesperado.');
 }
 
 export async function getProducts() {

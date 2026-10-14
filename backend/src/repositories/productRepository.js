@@ -13,6 +13,11 @@ export async function insertProduct(product) {
   if (result.affectedRows !== 1) throw new Error('No se confirmó la inserción del producto.');
 }
 
+export async function deleteProductById(id) {
+  const [result] = await getPool().execute('DELETE FROM products WHERE id = ?', [id]);
+  return result.affectedRows;
+}
+
 export async function updateProductById(id, data) {
   const connection = await getPool().getConnection();
   let reusable = true;

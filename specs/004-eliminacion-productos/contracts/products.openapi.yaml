@@ -1,0 +1,58 @@
+openapi: 3.0.3
+info:
+  title: SmartList SMARLIST-14 HU-13
+  version: 1.0.0
+paths:
+  /api/products/{id}:
+    delete:
+      summary: Eliminar físicamente solo el producto por UUID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+          description: Formato UUID sin normalización ni restricción de versión
+      responses:
+        '204':
+          description: Eliminado sin contenido; no cuerpo JSON
+        '400':
+          description: Identificador inválido, sin SQL
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PublicError' }
+        '404':
+          description: Producto inexistente o ya eliminado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PublicError' }
+              example: { error: { message: Producto no encontrado. } }
+        '503':
+          description: MySQL indisponible, sin detalles internos
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [error]
+                properties:
+                  error: { type: string, enum: [Servicio temporalmente no disponible] }
+        '500':
+          description: Error inesperado genérico existente
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PublicError' }
+components:
+  schemas:
+    PublicError:
+      type: object
+      required: [error]
+      additionalProperties: false
+      properties:
+        error:
+          type: object
+          required: [message]
+          properties:
+            message: { type: string }
