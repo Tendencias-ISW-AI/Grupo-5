@@ -10,3 +10,9 @@ coverage/
 !.env.example
 *.log
 .DS_Store
+backend/.env
+backend/node_modules/
+tmp/
+*.tmp
+.agents/auth.json
+.codex/auth.json

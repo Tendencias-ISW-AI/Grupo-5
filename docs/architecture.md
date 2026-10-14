@@ -335,3 +335,15 @@ Los cambios arquitectónicos deberán justificarse con una necesidad concreta y 
 - `docs/stories/`: criterios de aceptación de cada historia de usuario.
 
 En caso de contradicción entre documentos, se debe informar la inconsistencia antes de implementar cambios.
+
+## 15. Ampliación autorizada: base técnica del backend
+
+Las secciones anteriores describen el frontend y sus HU-01 a HU-08. La nueva configuración es independiente en `backend/`; no sustituye localStorage ni conecta React al servidor. Los requisitos originales permanecen como referencia del alcance anterior.
+
+Arquitectura objetivo: Routes → Controllers → Services → Repositories → MySQL. Routes define endpoints; Controllers interpreta HTTP; Services aplica validaciones y reglas; Repositories ejecuta SQL parametrizado; Config concentra entorno y pool; Middleware gestiona errores transversales.
+
+Configurado: Express en `src/app.js`, inicio separado en `src/server.js`, JSON, CORS restringido al origen configurado, 404 y errores JSON, y GET `/health` sin base de datos. MySQL utiliza `mysql2/promise` con pool diferido y comprobación explícita mediante `checkDatabaseConnection`. Dotenv carga únicamente el `.env` local de `backend/`, con variables existentes del proceso teniendo precedencia. Vitest y Supertest prueban HTTP; la configuración MySQL se prueba con mocks.
+
+Pendiente: esquema, tablas, rutas/controladores/servicios/repositorios de productos, contratos API e integración frontend. Las carpetas vacías se conservan mediante `.gitkeep`; `schema.sql` solo contiene comentarios. No hay ORM, migraciones, autenticación ni Docker.
+
+Spec Kit 1.0.13 está inicializado en la raíz con integración oficial Codex, scripts Bash y habilidades `.agents/skills/speckit-*`. La Constitution es aún una plantilla. Las futuras funcionalidades seguirán Constitution → Specify → Clarify → Plan → Tasks → Analyze → Implement, con revisión individual y especificaciones en `specs/`. Esta preparación no ejecuta ninguna de esas fases. El AGENTS.md original se conserva y `backend/AGENTS.md` complementa las reglas para la ampliación autorizada.
