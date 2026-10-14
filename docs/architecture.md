@@ -8,6 +8,8 @@ Su propósito es establecer la organización del código, la distribución de re
 
 La implementación debe respetar los requisitos y las instrucciones aplicables. HU-01 a HU-08 conservan el contexto histórico; HU-14 / SMARLIST-15 autoriza la arquitectura vigente React → servicio HTTP → API por capas → MySQL. Las decisiones iniciales de persistencia local ya no están activas.
 
+La [matriz vigente](requirements.md) y el [registro de discrepancias](documentation-traceability.md) contrastan esta arquitectura con Jira el 2026-10-14. En Jira, HU-09 es mejora visual (SMARLIST-10) y HU-10 es consulta (SMARLIST-11); specs/001-consultar-productos conserva el rótulo histórico HU-09. HU-12 tiene título de edición y descripción PATCH, mientras su spec local define PUT: ambas fuentes permanecen diferenciadas, sin resolver esa contradicción por suposición.
+
 ## 2. Estilo arquitectónico
 
 SmartList utilizará una arquitectura frontend basada en componentes de React, organizada por responsabilidades técnicas.
@@ -183,7 +185,8 @@ Cada producto tendrá la siguiente estructura lógica:
   id: "identificador-unico",
   name: "Arroz",
   quantity: 2,
-  purchased: false
+  purchased: false,
+  category: "Otros"
 }
 ```
 
@@ -195,6 +198,7 @@ Cada producto tendrá la siguiente estructura lógica:
 | name | string | Nombre del producto |
 | quantity | number | Cantidad entera positiva |
 | purchased | boolean | Estado de compra |
+| category | string | Una categoría válida; Otros por defecto al registrar |
 
 ### Reglas
 
@@ -205,7 +209,7 @@ Cada producto tendrá la siguiente estructura lógica:
 - Se permiten productos con nombres repetidos.
 - Las operaciones deben identificar los productos mediante `id`.
 
-La tabla MySQL existente conserva estos cuatro atributos, sin cambios de esquema en HU-14.
+HU-14 conservó inicialmente cuatro atributos. Desde HU-15 el modelo vigente tiene cinco e incluye category; GET, POST, PUT y PATCH devuelven esa categoría. Las especificaciones de entregas anteriores conservan su modelo histórico.
 
 ## 8. Flujo de información
 
@@ -276,7 +280,7 @@ Para HU-01, Vitest utiliza jsdom (dependencia de desarrollo) y las APIs `createR
 
 HU-08 calcula los indicadores durante el render de `App` desde la colección completa `items`: longitud total y conteos por `purchased === false` o `purchased === true`. `quantity` no interviene. `ShoppingSummary` recibe los valores derivados, sin estado adicional, efectos o acceso al almacenamiento. El resumen es global e independiente de `visibleItems`; agregar, eliminar o alternar estado actualiza los indicadores, mientras editar nombre o cantidad no los altera. Los contadores no se almacenan ni cambian las políticas de HU-07.
 
-HU-17 (SMARLIST-21) agrega `searchQuery` en `App`, junto a `activeFilter`, sin persistirlo ni modificar `useShoppingList`. `src/utils/productFilters.js` concentra el filtrado en funciones puras: `normalizeText` (NFD sin marcas diacríticas, minúsculas, espacios reducidos y recortados), `matchesStatus`, `matchesSearch` (coincidencia parcial literal con `includes`) y `filterProducts(items, { status, query })`, que exige todos los criterios y conserva orden y referencias. El filtrado de estado de HU-06 se trasladó a `matchesStatus` con las mismas condiciones. Para el futuro filtro de categoría (SMARLIST-20) basta con añadir `category` a los criterios y su predicado. Con productos registrados y una búsqueda sin coincidencias, el mensaje de búsqueda prevalece sobre los mensajes del filtro; con la colección vacía se conserva el mensaje original.
+HU-17 (SMARLIST-21) agrega `searchQuery` en `App`, junto a `activeFilter`, sin persistirlo ni modificar `useShoppingList`. `src/utils/productFilters.js` concentra el filtrado en funciones puras: `normalizeText` (NFD sin marcas diacríticas, minúsculas, espacios reducidos y recortados), `matchesStatus`, `matchesSearch` (coincidencia parcial literal con `includes`) y `filterProducts(items, { status, query, category })`, que exige todos los criterios y conserva orden y referencias. El filtrado de estado de HU-06 se trasladó a `matchesStatus` con las mismas condiciones. HU-16 / SMARLIST-20 incorpora category y matchesCategory: los productos deben cumplir estado, búsqueda y categoría. La extensión inicial se conserva en la especificación histórica de búsqueda. Con productos registrados y una búsqueda sin coincidencias, el mensaje de búsqueda prevalece sobre los mensajes del filtro; con la colección vacía se conserva el mensaje original.
 
 HU-06 mantiene `activeFilter` en `App`, inicialmente `all`, con opciones `pending` y `purchased`. La colección visible se deriva mediante `filter` en cada render, sin otro estado de productos ni cambios en el hook. `ShoppingFilters` comunica la selección con botones y `aria-pressed`; `ShoppingList` recibe un mensaje vacío configurable. Si la colección original está vacía se conserva el mensaje original; si contiene registros sin coincidencias se utiliza el mensaje del filtro. Ocultar un producto desmonta su formulario y descarta cualquier borrador sin guardar.
 
@@ -349,17 +353,18 @@ Arquitectura objetivo: Routes → Controllers → Services → Repositories → 
 
 Configurado: Express en `src/app.js`, inicio separado en `src/server.js`, JSON, CORS restringido al origen configurado, 404 y errores JSON, y GET `/health` sin base de datos. MySQL utiliza `mysql2/promise` con pool diferido y comprobación explícita mediante `checkDatabaseConnection`. Dotenv carga únicamente el `.env` local de `backend/`, con variables existentes del proceso teniendo precedencia. Vitest y Supertest prueban HTTP; la configuración MySQL se prueba con mocks.
 
+HU-10 / SMARLIST-11 (rotulada HU-09 en specs/001) implementa GET `/api/products` mediante `productRoutes` → `productController` → `productService` → `productRepository` → pool MySQL. El repositorio ejecuta SELECT de los cinco campos vigentes desde HU-15, ordenado por `BINARY id ASC`; el servicio comprueba el modelo y convierte TINYINT 0/1 a booleano JSON sin mutar filas. El controlador devuelve un arreglo 200, incluido `[]`. El servicio identifica fallos conocidos de almacenamiento y el middleware responde 503 con `{"error":"Servicio temporalmente no disponible"}`; errores inesperados conservan el 500 genérico.
 HU-09 implementa GET `/api/products` mediante `productRoutes` → `productController` → `productService` → `productRepository` → pool MySQL. El repositorio ejecuta SELECT de los cinco campos públicos, ordenado por `creation_order ASC` (SMARLIST-23); el servicio comprueba el modelo y convierte TINYINT 0/1 a booleano JSON sin mutar filas. El controlador devuelve un arreglo 200, incluido `[]`. El servicio identifica fallos conocidos de almacenamiento y el middleware responde 503 con `{"error":"Servicio temporalmente no disponible"}`; errores inesperados conservan el 500 genérico.
 
-`database/schema.sql` define `smartlist_db.products`: id VARCHAR(36) PK, name VARCHAR(150), quantity INT positivo y purchased BOOLEAN con default FALSE; CHECK enforced protege sus dominios. `database/initialize.js` y `config/initializeDatabase.js` se ejecutan únicamente con `npm run db:init`, inspeccionan MySQL >= 8.0.16 y compatibilidad previa, y crean solo objetos faltantes. Ante incompatibilidad no alteran estructuras ni datos. GET, importaciones y arranque no inicializan el esquema. Los secretos permanecen en `.env` excluido de Git.
+`database/schema.sql` define `smartlist_db.products`: id VARCHAR(36) PK, name VARCHAR(150), quantity INT positivo, purchased BOOLEAN con default FALSE y category VARCHAR(30) con default Otros desde HU-15; CHECK enforced protege sus dominios. `database/initialize.js` y `config/initializeDatabase.js` se ejecutan únicamente con `npm run db:init`, inspeccionan MySQL >= 8.0.16 y compatibilidad previa, y crean solo objetos faltantes. Ante incompatibilidad no alteran estructuras ni datos. GET, importaciones y arranque no inicializan el esquema. Los secretos permanecen en `.env` excluido de Git.
 
-HU-11 / SMARLIST-12 agrega POST `/api/products` en las mismas capas. `createProduct` valida un objeto con exclusivamente name/quantity, normaliza nombre mediante trim, exige UTF-8 válido y hasta150 caracteres Unicode, y quantity entero numérico entre1 y2147483647. Genera UUID con `node:crypto`, establece purchased=false y llama `insertProduct`, que usa INSERT parametrizado y confirma una fila insertada antes de devolver201. Datos inválidos producen400 sin SQL; se comparte la clasificación de indisponibilidad del servicio y el manejo503/500 existente. JSON inválido produce400 genérico sin eco del payload.
+HU-11 / SMARLIST-12 agrega POST `/api/products` en las mismas capas. `createProduct` valida un objeto con name/quantity obligatorios y category opcional desde HU-15, normaliza nombre mediante trim, exige UTF-8 válido y hasta150 caracteres Unicode, y quantity entero numérico entre1 y2147483647. Genera UUID con `node:crypto`, establece purchased=false y llama `insertProduct`, que usa INSERT parametrizado y confirma una fila insertada antes de devolver201. Datos inválidos producen400 sin SQL; se comparte la clasificación de indisponibilidad del servicio y el manejo503/500 existente. JSON inválido produce400 genérico sin eco del payload.
 
-El esquema no cambia. GET conserva contrato y orden; su comprobación de longitud de nombre cuenta caracteres Unicode como MySQL para recuperar nombres válidos de POST sin truncar. No se agregan estados, campos o capas. Los reintentos de POST no se deduplican.
+En la entrega original de HU-11 el esquema no cambió; HU-15 lo amplió con category. GET conserva el orden SQL descrito; su comprobación de longitud de nombre cuenta caracteres Unicode como MySQL para recuperar nombres válidos de POST sin truncar. La entrega original de registro no añadió estados, campos ni capas; la categoría pertenece a HU-15. Los reintentos de POST no se deduplican.
 
-HU-12 / SMARLIST-13 agrega PUT `/api/products/:id` en las capas existentes. POST y PUT comparten `validateProductData` local al servicio, sin modificar las reglas/mensajes de registro. El ID se valida como string bien formado de1..36 unidades UTF-16 sin espacios externos; cuerpo completo exclusivo name/quantity. Inválido400 antes deSQL, inexistente404 sin upsert y edición200 con cuatro atributos, id/purchased originales. Infraestructura conserva503/500.
+La especificación local de HU-12 define PUT `/api/products/:id` en las capas existentes; su asociación a SMARLIST-13 está pendiente de reconciliar con la descripción PATCH de Jira (D-02). POST y PUT comparten `validateProductData` local al servicio, sin modificar las reglas/mensajes de registro. El ID se valida como string bien formado de1..36 unidades UTF-16 sin espacios externos; cuerpo completo de name/quantity y category opcional desde HU-15. Inválido400 antes deSQL, inexistente404 sin upsert y edición200 con los cinco atributos vigentes y con id/purchased originales. Infraestructura conserva503/500.
 
-`updateProductById` adquiere una conexión y transacción: SELECT por clave primaria FOR UPDATE, luego UPDATE parametrizado únicamente de name/quantity. Consulta vacía produce ausencia; una fila existente produce200 incluso con cero cambios. Se devuelve id/purchased de la fila bloqueada y los campos confirmados, evitando una tercera consulta bajo el esquema comprobado InnoDB sin triggers transformadores. Commit antes de responder; error produce rollback y release, y un rollback fallido destruye la conexión sin ocultar el error original. No hay reintentos automáticos o control optimista.
+`updateProductById` adquiere una conexión y transacción: SELECT por clave primaria FOR UPDATE, luego UPDATE parametrizado de name/quantity y category opcional, conservando la categoría almacenada si se omite. Consulta vacía produce ausencia; una fila existente produce200 incluso con cero cambios. Se devuelve id/purchased de la fila bloqueada y los campos confirmados, evitando una tercera consulta bajo el esquema comprobado InnoDB sin triggers transformadores. Commit antes de responder; error produce rollback y release, y un rollback fallido destruye la conexión sin ocultar el error original. No hay reintentos automáticos o control optimista.
 
 HU-13 / SMARLIST-14 agrega DELETE `/api/products/:id` en las mismas capas. Servicio comparte la validación básica de ID con PUT y exige adicionalmente UUID hexadecimal8-4-4-4-12 solo para DELETE, sin normalizar identidad o restringir versión. PUT mantiene sus reglas históricas. El repositorio ejecuta una sentencia parametrizada `DELETE FROM products WHERE id = ?`;0 filas produce404,1 confirma éxito y el controlador termina204 sin cuerpo. Errores400/404/503/500 reutilizan las convenciones existentes. La selección no depende de nombre,estado o cuerpo.
 
@@ -373,7 +378,7 @@ HU-16 / SMARLIST-20 completa `filterProducts` con `matchesCategory` (criterio `c
 
 Las pruebas aisladas usan Vitest/Supertest con mocks; `npm run test:mysql` activa suites reales secuenciales con fixtures propios, limpieza por sus IDs y comparación de colección/esquema inicial y final, incluyendo GET/POST/PUT/DELETE HTTP y reinicio del proceso. Las pruebas nunca eliminan registros anteriores del usuario. HU-14 completa cambio de estado e integración React–API. LocalStorage histórico permanece intacto, sin uso activo. No hay ORM, framework de migraciones, autenticación ni Docker; la única migración (HU-15) la aplica `npm run db:init`.
 
-Spec Kit 1.0.13 está inicializado en la raíz con integración oficial Codex, scripts Bash y habilidades `.agents/skills/speckit-*`. La Constitution v1.0.0 está aprobada. HU-09 conserva los artefactos del flujo SDD en `specs/001-consultar-productos`; las fases consecutivas fueron autorizadas expresamente sin cambios de rama. Las futuras funcionalidades siguen Specify → Clarify → Plan → Tasks → Analyze → Implement con revisión y aprobaciones aplicables. El AGENTS.md original se conserva y `backend/AGENTS.md` complementa las reglas de la ampliación.
+Spec Kit 1.0.13 está inicializado en la raíz con integración oficial Codex, scripts Bash y habilidades `.agents/skills/speckit-*`. La Constitution v1.0.0 está aprobada. La consulta (HU-10 en Jira, HU-09 en la entrega original) conserva los artefactos del flujo SDD en `specs/001-consultar-productos`; las fases consecutivas fueron autorizadas expresamente sin cambios de rama. Las futuras funcionalidades siguen Specify → Clarify → Plan → Tasks → Analyze → Implement con revisión y aprobaciones aplicables. El AGENTS.md original se conserva y `backend/AGENTS.md` complementa las reglas de la ampliación.
 
 ## 16. HU-14 / SMARLIST-15: estado e integración
 
@@ -383,6 +388,11 @@ PATCH `/api/products/:id/status` reutiliza las capas vigentes y la validación U
 
 Pruebas frontend utilizan API simulada independiente de localStorage, await act y respuestas copiadas. Conservan111 casos funcionales adaptados y añaden fallos/concurrencia/StrictMode. Backend mantiene pruebas aisladas y MySQL real con fixtures propios, incluyendo reinicio. Evidencia y cobertura en specs/005-integracion-full-stack/validation.md. Sin dependencias nuevas ni experiencia avanzada de reintentos/sincronización entre clientes.
 
+## 17. Fuentes documentales y límites del estado implementado
+
+HU-01 a HU-17 están representadas en [docs/stories](stories/). La correspondencia RF/HU/Jira/specs se mantiene en [requirements](requirements.md); el [registro de discrepancias](documentation-traceability.md) conserva los conflictos y pendientes.
+
+El orden BINARY id del repositorio SQL de esta rama es estable, pero no representa la cronología de registro. Los filtros y grupos conservan el orden recibido; no corrigen esa limitación al recargar. SMARLIST-23 aparece Listo en Jira, pero este checkout no incluye la secuencia persistente. No se considera resuelto aquí ni se modifica código en una tarea documental.
 ### SMARLIST-23: orden persistente de registro
 
 El repositorio ordena GET /api/products por creation_order ASC. Esta columna interna BIGINT UNSIGNED AUTO_INCREMENT posee un índice único; no se añade al contrato JSON ni a los INSERT de la API. La asignación de MySQL permite ordenar inserciones rápidas y concurrentes sin depender del UUID o del reloj. Bajo concurrencia el orden corresponde a la asignación de secuencia, sin garantizar el orden de llegada de solicitudes o de commit.
