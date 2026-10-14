@@ -21,7 +21,7 @@ Los diagramas representan el código implementado en el repositorio, revisado el
 
 Los puertos 5173 y 3000 son los valores locales documentados, no requisitos de despliegue. `GET /health` existe y no depende de MySQL; no es una funcionalidad de compras del usuario. Filtros y resumen se calculan en React desde la colección completa, sin endpoints adicionales. El total cuenta registros, no cantidades.
 
-AGENTS.md y algunos párrafos históricos de README/architecture/requirements todavía describen la etapa de persistencia local. La sección HU-14 y el código vigente confirman MySQL como persistencia activa. `shoppingListStorage.js` no forma parte del flujo de producción y no se representa como almacén activo. Los diagramas no añaden usuarios en la base de datos, autenticación, tablas de listas, relaciones, migración local o servicios que no existen.
+AGENTS.md y algunos párrafos históricos de README/architecture/requirements todavía describen la etapa de persistencia local. La sección HU-14 y el código vigente confirman MySQL como persistencia activa. El módulo histórico de localStorage fue retirado y no se representa como almacén activo. Los diagramas no añaden usuarios en la base de datos, autenticación, tablas de listas, relaciones, migración local o servicios que no existen.
 
 ## Lectura y validación
 

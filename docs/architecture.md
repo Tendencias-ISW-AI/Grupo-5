@@ -61,7 +61,6 @@ smartlist/
 │   ├── hooks/
 │   │   └── useShoppingList.js
 │   ├── utils/
-│   │   ├── shoppingListStorage.js
 │   │   └── productFilters.js
 │   ├── App.jsx
 │   ├── App.css
@@ -237,7 +236,7 @@ MySQL es la única persistencia activa. `productsApi.js` centraliza fetch, URL p
 
 El hook carga mediante GET cancelable y protegido por generación de montaje. Distingue loading/ready/error y bloquea escrituras hasta cargar. Una cola global serializa mutaciones leyendo los productos confirmados vigentes al ejecutar; el checkbox envía el booleano deseado por PATCH. Los controles esperan confirmación y los fallos conservan colección/borradores. No hay actualización optimista ni reintentos automáticos.
 
-No se lee, escribe, migra ni borra automáticamente la clave histórica smartlist.products. Esos datos no aparecen en la lista API. shoppingListStorage.js permanece como utilidad histórica con pruebas aisladas, sin importación de producción. Filtros, resumen y borradores no se persisten.
+No se lee, escribe, migra ni borra automáticamente la clave histórica smartlist.products. Esos datos no aparecen en la lista API. El responsable confirmó el 2026-10-14 que no se requiere migrar esos productos y autorizó retirar el módulo histórico y su prueba exclusiva (SMARLIST-26; rama feature/SMARTLIST-29-remove-unused-local-storage). Las pruebas de HU-07 conservan la persistencia mediante API, los remontajes y la protección de los datos locales históricos; su clave se declara como fixture de prueba sin depender de código de producción eliminado. Filtros, resumen y borradores no se persisten.
 
 ## 10. Validaciones y manejo de errores
 

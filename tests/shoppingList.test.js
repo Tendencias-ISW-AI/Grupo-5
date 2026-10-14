@@ -6,7 +6,9 @@ import App from '../src/App.jsx';
 import ShoppingForm from '../src/components/ShoppingForm.jsx';
 import ShoppingList from '../src/components/ShoppingList.jsx';
 import useShoppingList from '../src/hooks/useShoppingList.js';
-import { STORAGE_KEY, readShoppingList, writeShoppingList } from '../src/utils/shoppingListStorage.js';
+
+// Clave del fixture histórico: comprueba que la API no lee ni modifica datos locales.
+const STORAGE_KEY = 'smartlist.products';
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 let container;
 let root;
@@ -973,18 +975,6 @@ describe('HU-07 adaptada: persistencia API sin migración local', () => {
     await remount(strictApp);
     expect(storedItems()).toEqual(saved);
     expect(container.querySelectorAll('li')).toHaveLength(3);
-  });
-  it('el módulo serializa sin mutar y gestiona fallos de serialización', () => {
-    const items = fixtures.map(item => Object.freeze({
-      ...item
-    }));
-    Object.freeze(items);
-    expect(writeShoppingList(items)).toBe(true);
-    expect(readShoppingList().items).toEqual(fixtures);
-    const cyclic = [];
-    cyclic.push(cyclic);
-    expect(writeShoppingList(cyclic)).toBe(false);
-    expect(readShoppingList().items).toEqual(fixtures);
   });
 });
 describe('HU-08: resumen global de compras', () => {
