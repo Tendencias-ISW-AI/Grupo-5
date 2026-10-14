@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 
 const { listProducts } = vi.hoisted(() => ({ listProducts: vi.fn() }));
-vi.mock('../src/repositories/productRepository.js', () => ({ listProducts }));
+vi.mock('../src/repositories/productRepository.js', () => ({ listProducts, insertProduct: vi.fn() }));
 import app from '../src/app.js';
 
 beforeEach(() => { listProducts.mockReset(); listProducts.mockResolvedValue([]); });
@@ -40,9 +40,9 @@ describe('HU-09 GET /api/products', () => {
     expect(listProducts).toHaveBeenCalledTimes(3);
   });
 
-  it.each(['post', 'put', 'patch', 'delete'])('no implementa %s /api/products', async method => {
+  it.each(['post', 'put', 'patch', 'delete'])('rechaza escritura inválida/no disponible: %s /api/products', async method => {
     const response = await request(app)[method]('/api/products').send({ name: 'No registrar' });
-    expect(response.status).toBe(404);
+    expect(response.status).toBe(method === 'post' ? 400 : 404);
     expect(listProducts).not.toHaveBeenCalled();
   });
 

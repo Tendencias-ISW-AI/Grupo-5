@@ -244,7 +244,7 @@ La información se almacena localmente en el navegador y origen utilizados, sin 
 
 ## Ampliación: backend y Spec-Driven Development
 
-El frontend conserva su estructura en la raíz, sus comandos npm y la persistencia con localStorage. El backend vive en `backend/` con un `package.json` y un lockfile independientes. HU-09 implementa la consulta de productos persistidos en MySQL; la integración de React y los endpoints de escritura siguen pendientes. Los requisitos originales de HU-01 a HU-08 documentan el alcance frontend anterior; esta ampliación no los modifica.
+El frontend conserva su estructura en la raíz, sus comandos npm y la persistencia con localStorage. El backend vive en `backend/` con un `package.json` y un lockfile independientes. HU-09 consulta productos persistidos en MySQL y HU-11 (SMARLIST-12) permite registrarlos. La integración de React, edición, eliminación y cambio de estado en la API siguen pendientes. Los requisitos originales de HU-01 a HU-08 documentan el alcance frontend anterior; esta ampliación no los modifica.
 
 ### Instalar y ejecutar el backend
 
@@ -283,9 +283,19 @@ npm start
 
 `GET http://localhost:3000/api/products` devuelve HTTP 200 y un arreglo JSON directo, ordenado por ID ascendente con comparación binaria. Una lista vacía devuelve `[]`. Cada registro contiene `id`, `name`, `quantity` y `purchased` booleano; quantity no expande registros. La consulta conserva datos y nombres repetidos. MySQL no disponible devuelve HTTP 503 con `{"error":"Servicio temporalmente no disponible"}`; errores inesperados conservan la respuesta 500 genérica existente. `/health` sigue siendo independiente de MySQL.
 
-`npm test` no necesita MySQL real; la suite real se omite por defecto. `npm run test:mysql` la activa explícitamente y requiere `smartlist_db` local preparada. Inserta fixtures con IDs propios y limpia únicamente esos IDs; verifica consulta, orden, restricciones y persistencia tras reconexión y reinicio del proceso. No utilizar la suite real en producción. Para comprobación manual, consultar la API varias veces y reiniciar el servidor: los datos y su orden deben permanecer. No existen endpoints POST, PUT, PATCH o DELETE de productos ni importación desde localStorage.
+`npm test` no necesita MySQL real; las suites reales se omiten por defecto. `npm run test:mysql` las activa explícitamente y requiere `smartlist_db` local preparada. Se ejecutan secuencialmente para proteger las comprobaciones de colección inicial/final. Crean fixtures identificables y limpian únicamente sus IDs; verifican consulta, registro, orden, restricciones y persistencia. No utilizar las suites reales en producción. Para comprobación manual, consultar la API varias veces y reiniciar el servidor: los datos y su orden deben permanecer. No existen endpoints PUT, PATCH o DELETE de productos ni importación desde localStorage.
 
 Artefactos y evidencia de HU-09: `specs/001-consultar-productos/`. La clave Jira definitiva todavía no está confirmada.
+
+### HU-11 / SMARLIST-12: registrar productos
+
+`POST http://localhost:3000/api/products` recibe un objeto JSON con únicamente `name` y `quantity`. Ejemplo: `{"name":"  Arroz  ","quantity":2}`. Responde HTTP 201 con `{"id":"UUID generado","name":"Arroz","quantity":2,"purchased":false}` y el producto queda disponible en GET. ID y estado se generan exclusivamente en el servidor; nombres repetidos producen registros independientes.
+
+El nombre debe ser string válido, no vacío después de trim y de hasta 150 caracteres Unicode. La cantidad debe ser number entero entre 1 y 2147483647, sin convertir strings. Cuerpo incorrecto, datos inválidos, campos adicionales o intentos de establecer id/purchased reciben 400 con `{"error":{"message":"mensaje público"}}`, antes de insertar. JSON malformado recibe el mensaje genérico `JSON inválido.`. Errores de MySQL mantienen los contratos seguros 503/500 de HU-09. Se reutilizan esquema y pool existentes, sin DDL ni dependencias nuevas.
+
+Para comprobar manualmente, enviar POST con Content-Type application/json, recuperar el ID mediante GET y probar quantity string o nombre vacío:400. Los registros manuales son persistentes; esta historia no incluye una API para eliminarlos. Las pruebas automatizadas limpian solo sus propios datos. Un reintento de POST puede crear otro registro: no se implementa deduplicación de solicitudes.
+
+Artefactos SDD y evidencia: `specs/002-registro-productos/`. Mantenimiento separado en la misma rama: encabezado h1 corregido a `SmartList`, sin modificar pruebas, estilos, funcionalidades React ni localStorage.
 
 ### Spec Kit con Codex
 

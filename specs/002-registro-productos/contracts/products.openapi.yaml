@@ -1,0 +1,70 @@
+openapi: 3.0.3
+info:
+  title: SmartList SMARLIST-12 HU-11
+  version: 1.0.0
+paths:
+  /api/products:
+    post:
+      summary: Registrar un producto pendiente
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name, quantity]
+              properties:
+                name:
+                  type: string
+                  description: Normalizar con trim; no vacío ni solo espacios; máximo150 caracteres tras normalizar
+                quantity:
+                  type: integer
+                  minimum: 1
+                  maximum: 2147483647
+      responses:
+        '201':
+          description: Producto persistido con UUID generado y estado pendiente
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [id, name, quantity, purchased]
+                properties:
+                  id: { type: string, format: uuid }
+                  name: { type: string, minLength: 1, maxLength: 150 }
+                  quantity: { type: integer, minimum: 1, maximum: 2147483647 }
+                  purchased: { type: boolean, enum: [false] }
+        '400':
+          description: Solicitud inválida, sin INSERT
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [error]
+                properties:
+                  error:
+                    type: object
+                    required: [message]
+                    properties:
+                      message: { type: string }
+        '503':
+          description: Almacenamiento indisponible; contrato seguro HU-09
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [error]
+                properties:
+                  error: { type: string, enum: [Servicio temporalmente no disponible] }
+        '500':
+          description: Error inesperado, respuesta genérica existente error.message
+    get:
+      summary: Contrato de consulta HU-09 conservado
+      responses:
+        '200':
+          description: Arreglo completo por id ascendente, incluye registros creados
+        '503':
+          description: Servicio temporalmente no disponible

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { listProducts } = vi.hoisted(() => ({ listProducts: vi.fn() }));
-vi.mock('../src/repositories/productRepository.js', () => ({ listProducts }));
+vi.mock('../src/repositories/productRepository.js', () => ({ listProducts, insertProduct: vi.fn() }));
 import { getProducts } from '../src/services/productService.js';
 
 beforeEach(() => vi.clearAllMocks());
