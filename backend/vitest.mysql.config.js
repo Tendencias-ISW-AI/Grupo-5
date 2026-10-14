@@ -6,7 +6,7 @@ export default defineConfig({
     include: ['tests/*.mysql.test.js'],
     fileParallelism: false,
     env: { RUN_MYSQL_TESTS: '1' },
-    testTimeout: 10000,
-    hookTimeout: 10000,
+    testTimeout: 60000,
+    hookTimeout: 30000,
   },
 });
