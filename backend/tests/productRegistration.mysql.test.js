@@ -53,18 +53,18 @@ describe.skipIf(process.env.RUN_MYSQL_TESTS !== '1')('SMARLIST-12 HU-11 MySQL y 
     }
   });
 
-  it('HTTP real /health200, POST201, cuatro atributos y GET recuperable sin alterar anteriores', async () => {
+  it('HTTP real /health200, POST201, atributos con categoría Otros y GET recuperable sin alterar anteriores', async () => {
     const health = await fetch(`${origin}/health`);
     expect(health.status).toBe(200);
     expect(await health.json()).toEqual({ status: 'ok' });
     const response = await post({ name: `  ${prefix}Arroz  `, quantity: 2 });
     expect(response.status).toBe(201);
     created = response.body;
-    expect(created).toEqual({ id: expect.stringMatching(uuid), name: `${prefix}Arroz`, quantity: 2, purchased: false });
+    expect(created).toEqual({ id: expect.stringMatching(uuid), name: `${prefix}Arroz`, quantity: 2, purchased: false, category: 'Otros' });
     const all = await readProducts();
     expect(all.find(product => product.id === created.id)).toEqual(created);
     expect(all.filter(product => !product.name.startsWith(prefix))).toEqual(baseline);
-    const [[stored]] = await getPool().execute('SELECT id, name, quantity, purchased FROM products WHERE id = ?', [created.id]);
+    const [[stored]] = await getPool().execute('SELECT id, name, quantity, purchased, category FROM products WHERE id = ?', [created.id]);
     expect(stored).toEqual({ ...created, purchased: 0 });
   });
 

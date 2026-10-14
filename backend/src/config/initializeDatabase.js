@@ -16,7 +16,12 @@ async function verifyTable(connection) {
     [schemaName, 'products'],
   );
   const fields = Object.fromEntries(columns.map(column => [column.COLUMN_NAME, column]));
-  const validColumns = columns.length === 4
+  // HU-15: cuatro columnas es la versión anterior (sin category), migrable por initializeDatabase.
+  const legacy = columns.length === 4;
+  const validCategory = legacy || (columns.length === 5
+    && fields.category?.DATA_TYPE === 'varchar' && fields.category.CHARACTER_MAXIMUM_LENGTH === 30
+    && String(fields.category.COLUMN_DEFAULT) === 'Otros');
+  const validColumns = validCategory
     && columns.every(column => column.IS_NULLABLE === 'NO')
     && fields.id?.DATA_TYPE === 'varchar' && fields.id.CHARACTER_MAXIMUM_LENGTH === 36
     && fields.id.COLUMN_KEY === 'PRI' && columns.filter(column => column.COLUMN_KEY === 'PRI').length === 1
@@ -30,6 +35,12 @@ async function verifyTable(connection) {
   if (!validColumns || !validChecks || extraUniqueIndexes.length > 0) {
     throw new Error('La estructura existente de products es incompatible; no se aplicaron reparaciones.');
   }
+  return legacy ? 'legacy' : 'current';
+}
+
+async function readStatements(file) {
+  const sql = await readFile(new URL(`../../database/${file}`, import.meta.url), 'utf8');
+  return sql.replace(/--[^\n]*/g, '').split(';').map(statement => statement.trim()).filter(Boolean);
 }
 
 export async function initializeDatabase(connection) {
@@ -44,14 +55,21 @@ export async function initializeDatabase(connection) {
   if (tables.length && tables[0].TABLE_TYPE !== 'BASE TABLE') {
     throw new Error('El objeto products existente es incompatible; no se modificó.');
   }
-  if (tables.length) await verifyTable(connection);
+  const structure = tables.length ? await verifyTable(connection) : null;
 
-  const schema = await readFile(new URL('../../database/schema.sql', import.meta.url), 'utf8');
-  const statements = schema.replace(/--[^\n]*/g, '').split(';').map(sql => sql.trim()).filter(Boolean);
+  const statements = await readStatements('schema.sql');
   if (!databases.length) await connection.execute(statements[0]);
   if (!tables.length) {
     await connection.execute(statements[1]);
-    await verifyTable(connection);
+    if (await verifyTable(connection) !== 'current') throw new Error('La tabla creada no incluye category.');
   }
-  return { databaseCreated: databases.length === 0, tableCreated: tables.length === 0 };
+  const categoryAdded = structure === 'legacy';
+  if (categoryAdded) {
+    const [addCategory] = await readStatements('add-product-category.sql');
+    await connection.execute(addCategory);
+    if (await verifyTable(connection) !== 'current') {
+      throw new Error('La migración de category no produjo la estructura esperada.');
+    }
+  }
+  return { databaseCreated: databases.length === 0, tableCreated: tables.length === 0, categoryAdded };
 }

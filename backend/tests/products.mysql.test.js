@@ -13,7 +13,8 @@ const fixtures = [
   { id: randomUUID(), name: 'HU09 prueba Arroz', quantity: 5, purchased: 1 },
 ];
 const ids = fixtures.map(product => product.id);
-const expected = fixtures.map(product => ({ ...product, purchased: product.purchased === 1 }))
+// Insertados sin category: MySQL aplica el valor por defecto 'Otros' (HU-15).
+const expected = fixtures.map(product => ({ ...product, purchased: product.purchased === 1, category: 'Otros' }))
   .sort((a, b) => Buffer.compare(Buffer.from(a.id), Buffer.from(b.id)));
 
 describe.skipIf(process.env.RUN_MYSQL_TESTS !== '1')('HU-09 MySQL real (fixtures propios)', () => {
@@ -47,7 +48,7 @@ describe.skipIf(process.env.RUN_MYSQL_TESTS !== '1')('HU-09 MySQL real (fixtures
     }
   });
 
-  it('recupera los cuatro atributos, booleanos y duplicados con orden determinista', async () => {
+  it('recupera los atributos, booleanos, categoría por defecto y duplicados con orden determinista', async () => {
     const response = await request(app).get('/api/products');
     expect(response.status).toBe(200);
     expect(response.body.filter(product => ids.includes(product.id))).toEqual(expected);

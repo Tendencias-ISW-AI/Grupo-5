@@ -7,11 +7,11 @@ import { listProducts } from '../src/repositories/productRepository.js';
 beforeEach(() => { vi.clearAllMocks(); getPool.mockReturnValue({ execute }); });
 
 describe('Repositorio de productos', () => {
-  it('consulta solo cuatro columnas y ordena por id binario ascendente', async () => {
-    const rows = [{ id: 'a', name: 'Arroz', quantity: 2, purchased: 0 }];
+  it('consulta las cinco columnas y ordena por id binario ascendente', async () => {
+    const rows = [{ id: 'a', name: 'Arroz', quantity: 2, purchased: 0, category: 'Otros' }];
     execute.mockResolvedValue([rows, []]);
     expect(await listProducts()).toBe(rows);
-    expect(execute).toHaveBeenCalledExactlyOnceWith('SELECT id, name, quantity, purchased FROM products ORDER BY BINARY id ASC');
+    expect(execute).toHaveBeenCalledExactlyOnceWith('SELECT id, name, quantity, purchased, category FROM products ORDER BY BINARY id ASC');
     expect(getPool).toHaveBeenCalledOnce();
   });
 

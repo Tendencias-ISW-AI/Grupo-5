@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS smartlist_db.products (
   name VARCHAR(150) NOT NULL,
   quantity INT NOT NULL,
   purchased BOOLEAN NOT NULL DEFAULT FALSE,
+  category VARCHAR(30) NOT NULL DEFAULT 'Otros',
   CONSTRAINT chk_product_id CHECK (CHAR_LENGTH(TRIM(id)) > 0),
   CONSTRAINT chk_product_name CHECK (CHAR_LENGTH(TRIM(name)) > 0),
   CONSTRAINT chk_product_quantity CHECK (quantity > 0),

@@ -1,0 +1,117 @@
+openapi: 3.0.3
+info:
+  title: SmartList SMARLIST-19 HU-15 categorías de productos
+  version: 1.0.0
+paths:
+  /api/products:
+    get:
+      summary: Consultar productos con su categoría
+      responses:
+        '200':
+          description: Colección de productos
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Product' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+        '500': { $ref: '#/components/responses/Internal' }
+    post:
+      summary: Registrar producto con categoría opcional (por defecto Otros)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProductInput' }
+            example: { name: Leche, quantity: 1, category: Lácteos }
+      responses:
+        '201':
+          description: Producto creado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+        '500': { $ref: '#/components/responses/Internal' }
+  /api/products/{id}:
+    put:
+      summary: Editar nombre, cantidad y categoría opcional (si se omite se conserva)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 36 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProductInput' }
+      responses:
+        '200':
+          description: Producto editado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404':
+          description: Producto no encontrado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PublicError' }
+              example: { error: { message: Producto no encontrado. } }
+        '503': { $ref: '#/components/responses/Unavailable' }
+        '500': { $ref: '#/components/responses/Internal' }
+components:
+  schemas:
+    Category:
+      type: string
+      enum: [Frutas y verduras, Carnes y pescados, Lácteos, Panadería, Despensa, Bebidas, Aseo, Otros]
+      description: Coincidencia exacta, sin normalización
+    ProductInput:
+      type: object
+      additionalProperties: false
+      required: [name, quantity]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 150 }
+        quantity: { type: integer, minimum: 1, maximum: 2147483647 }
+        category: { $ref: '#/components/schemas/Category' }
+    Product:
+      type: object
+      additionalProperties: false
+      required: [id, name, quantity, purchased, category]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        quantity: { type: integer }
+        purchased: { type: boolean }
+        category: { $ref: '#/components/schemas/Category' }
+    PublicError:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [message]
+          properties:
+            message: { type: string }
+  responses:
+    BadRequest:
+      description: Cuerpo o categoría no válidos; no se ejecuta SQL
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/PublicError' }
+          example: { error: { message: 'La categoría debe ser una de: Frutas y verduras, Carnes y pescados, Lácteos, Panadería, Despensa, Bebidas, Aseo, Otros.' } }
+    Unavailable:
+      description: MySQL no disponible
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: { type: string, example: Servicio temporalmente no disponible }
+    Internal:
+      description: Error interno genérico
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/PublicError' }
+          example: { error: { message: Error interno del servidor. } }

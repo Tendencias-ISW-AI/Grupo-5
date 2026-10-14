@@ -1,14 +1,14 @@
 import { getPool } from '../config/database.js';
 
 export async function listProducts() {
-  const [rows] = await getPool().execute('SELECT id, name, quantity, purchased FROM products ORDER BY BINARY id ASC');
+  const [rows] = await getPool().execute('SELECT id, name, quantity, purchased, category FROM products ORDER BY BINARY id ASC');
   return rows;
 }
 
 export async function insertProduct(product) {
   const [result] = await getPool().execute(
-    'INSERT INTO products (id, name, quantity, purchased) VALUES (?, ?, ?, ?)',
-    [product.id, product.name, product.quantity, product.purchased ? 1 : 0],
+    'INSERT INTO products (id, name, quantity, purchased, category) VALUES (?, ?, ?, ?, ?)',
+    [product.id, product.name, product.quantity, product.purchased ? 1 : 0, product.category],
   );
   if (result.affectedRows !== 1) throw new Error('No se confirmó la inserción del producto.');
 }
@@ -24,15 +24,19 @@ export async function updateProductById(id, data) {
   try {
     await connection.beginTransaction();
     const [rows] = await connection.execute(
-      'SELECT id, name, quantity, purchased FROM products WHERE id = ? FOR UPDATE', [id],
+      'SELECT id, name, quantity, purchased, category FROM products WHERE id = ? FOR UPDATE', [id],
     );
     if (!rows.length) {
       await connection.rollback();
       return null;
     }
-    await connection.execute('UPDATE products SET name = ?, quantity = ? WHERE id = ?', [data.name, data.quantity, id]);
+    // HU-15: sin categoría en la solicitud se conserva la almacenada.
+    const category = data.category ?? rows[0].category;
+    await connection.execute(
+      'UPDATE products SET name = ?, quantity = ?, category = ? WHERE id = ?', [data.name, data.quantity, category, id],
+    );
     await connection.commit();
-    return { id: rows[0].id, name: data.name, quantity: data.quantity, purchased: rows[0].purchased };
+    return { id: rows[0].id, name: data.name, quantity: data.quantity, purchased: rows[0].purchased, category };
   } catch (error) {
     try {
       await connection.rollback();

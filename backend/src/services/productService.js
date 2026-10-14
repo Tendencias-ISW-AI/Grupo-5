@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { deleteProductById, insertProduct, listProducts, updateProductById } from '../repositories/productRepository.js';
+import { DEFAULT_PRODUCT_CATEGORY, PRODUCT_CATEGORIES, isValidProductCategory } from './productCategories.js';
 
 const unavailableCodes = new Set([
   'ECONNREFUSED', 'ETIMEDOUT', 'ENOTFOUND', 'EHOSTUNREACH', 'ECONNRESET',
@@ -33,10 +34,13 @@ function productNotFound() {
   throw error;
 }
 
+const allowedFields = new Set(['name', 'quantity', 'category']);
+
 function validateProductData(data) {
   if (!data || typeof data !== 'object' || Array.isArray(data)
-    || Object.keys(data).length !== 2 || !Object.hasOwn(data, 'name') || !Object.hasOwn(data, 'quantity')) {
-    invalidRequest('La solicitud debe contener únicamente nombre y cantidad.');
+    || !Object.hasOwn(data, 'name') || !Object.hasOwn(data, 'quantity')
+    || Object.keys(data).some(key => !allowedFields.has(key))) {
+    invalidRequest('La solicitud debe contener nombre y cantidad, y opcionalmente categoría.');
   }
   if (typeof data.name !== 'string' || !data.name.isWellFormed()) {
     invalidRequest('El nombre debe ser un texto válido.');
@@ -48,12 +52,15 @@ function validateProductData(data) {
   if (!Number.isInteger(data.quantity) || data.quantity < 1 || data.quantity > 2147483647) {
     invalidRequest('La cantidad debe ser un número entero entre 1 y 2147483647.');
   }
-  return { name, quantity: data.quantity };
+  if (Object.hasOwn(data, 'category') && !isValidProductCategory(data.category)) {
+    invalidRequest(`La categoría debe ser una de: ${PRODUCT_CATEGORIES.join(', ')}.`);
+  }
+  return { name, quantity: data.quantity, category: data.category };
 }
 
 export async function createProduct(data) {
-  const { name, quantity } = validateProductData(data);
-  const product = { id: randomUUID(), name, quantity, purchased: false };
+  const { name, quantity, category = DEFAULT_PRODUCT_CATEGORY } = validateProductData(data);
+  const product = { id: randomUUID(), name, quantity, purchased: false, category };
   try {
     await insertProduct(product);
   } catch (error) {
@@ -72,7 +79,7 @@ export async function updateProduct(id, data) {
     throwStorageError(error);
   }
   if (!row) productNotFound();
-  return { id: row.id, name: row.name, quantity: row.quantity, purchased: row.purchased === 1 };
+  return { id: row.id, name: row.name, quantity: row.quantity, purchased: row.purchased === 1, category: row.category };
 }
 
 export async function deleteProduct(id) {
@@ -104,9 +111,10 @@ export async function getProducts() {
       && typeof row.name === 'string' && row.name.trim().length > 0 && Array.from(row.name).length <= 150
       && row.name === row.name.trim()
       && Number.isInteger(row.quantity) && row.quantity > 0
-      && (row.purchased === 0 || row.purchased === 1);
+      && (row.purchased === 0 || row.purchased === 1)
+      && isValidProductCategory(row.category);
     if (!valid) throw new Error('Producto almacenado incompatible con el modelo.');
     ids.add(row.id);
-    return { id: row.id, name: row.name, quantity: row.quantity, purchased: row.purchased === 1 };
+    return { id: row.id, name: row.name, quantity: row.quantity, purchased: row.purchased === 1, category: row.category };
   });
 }
