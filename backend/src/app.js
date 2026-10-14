@@ -2,6 +2,7 @@ import './config/environment.js';
 import express from 'express';
 import cors from 'cors';
 import { errorHandler } from './middleware/errorHandler.js';
+import productRoutes from './routes/productRoutes.js';
 
 const app = express();
 const frontendOrigin = process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173';
@@ -19,6 +20,8 @@ app.use(express.json());
 app.get('/health', (_request, response) => {
   response.status(200).json({ status: 'ok' });
 });
+
+app.use('/api/products', productRoutes);
 
 app.use((_request, response) => {
   response.status(404).json({ error: { message: 'Ruta no encontrada.' } });
