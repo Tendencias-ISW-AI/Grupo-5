@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { deleteProductById, insertProduct, listProducts, updateProductById } from '../repositories/productRepository.js';
+import { deleteProductById, insertProduct, listProducts, updateProductById, updateProductStatusById } from '../repositories/productRepository.js';
 import { DEFAULT_PRODUCT_CATEGORY, PRODUCT_CATEGORIES, isValidProductCategory } from './productCategories.js';
 
 const unavailableCodes = new Set([
@@ -82,11 +82,31 @@ export async function updateProduct(id, data) {
   return { id: row.id, name: row.name, quantity: row.quantity, purchased: row.purchased === 1, category: row.category };
 }
 
-export async function deleteProduct(id) {
+function validateProductUuid(id) {
   validateProductId(id);
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
     invalidRequest('El identificador debe tener formato UUID válido.');
   }
+}
+
+export async function updateProductStatus(id, data) {
+  validateProductUuid(id);
+  if (!data || typeof data !== 'object' || Array.isArray(data)
+    || Object.keys(data).length !== 1 || !Object.hasOwn(data, 'purchased') || typeof data.purchased !== 'boolean') {
+    invalidRequest('La solicitud debe contener únicamente purchased de tipo booleano.');
+  }
+  let row;
+  try {
+    row = await updateProductStatusById(id, data.purchased);
+  } catch (error) {
+    throwStorageError(error);
+  }
+  if (!row) productNotFound();
+  return { id: row.id, name: row.name, quantity: row.quantity, purchased: row.purchased === 1, category: row.category };
+}
+
+export async function deleteProduct(id) {
+  validateProductUuid(id);
   let affectedRows;
   try {
     affectedRows = await deleteProductById(id);

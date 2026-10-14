@@ -46,7 +46,7 @@ describe('SMARLIST-13 / HU-12 edición', () => {
     await updateProductById(id, { name: "Arroz'); SQL --", quantity: 2 });
     expect(mocks.execute.mock.calls).toEqual([
       ['SELECT id, name, quantity, purchased, category FROM products WHERE id = ? FOR UPDATE', [id]],
-      ['UPDATE products SET name = ?, quantity = ?, category = ? WHERE id = ?', ["Arroz'); SQL --", 2, 'Otros', id]],
+      ['UPDATE products SET name = ?, quantity = ?, category = COALESCE(?, category) WHERE id = ?', ["Arroz'); SQL --", 2, null, id]],
     ]);
     expect(mocks.getConnection).toHaveBeenCalledOnce();
   });

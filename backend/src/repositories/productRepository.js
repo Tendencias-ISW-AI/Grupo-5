@@ -18,7 +18,7 @@ export async function deleteProductById(id) {
   return result.affectedRows;
 }
 
-export async function updateProductById(id, data) {
+async function updateProductFields(id, query, values, changes) {
   const connection = await getPool().getConnection();
   let reusable = true;
   try {
@@ -30,13 +30,9 @@ export async function updateProductById(id, data) {
       await connection.rollback();
       return null;
     }
-    // HU-15: sin categoría en la solicitud se conserva la almacenada.
-    const category = data.category ?? rows[0].category;
-    await connection.execute(
-      'UPDATE products SET name = ?, quantity = ?, category = ? WHERE id = ?', [data.name, data.quantity, category, id],
-    );
+    await connection.execute(query, [...values, id]);
     await connection.commit();
-    return { id: rows[0].id, name: data.name, quantity: data.quantity, purchased: rows[0].purchased, category };
+    return { ...rows[0], ...changes };
   } catch (error) {
     try {
       await connection.rollback();
@@ -49,4 +45,17 @@ export async function updateProductById(id, data) {
   } finally {
     if (reusable) connection.release();
   }
+}
+
+// HU-15: sin categoría en la solicitud, COALESCE conserva la almacenada y la fila bloqueada la devuelve.
+export function updateProductById(id, data) {
+  const changes = { name: data.name, quantity: data.quantity };
+  if (data.category !== undefined) changes.category = data.category;
+  return updateProductFields(id, 'UPDATE products SET name = ?, quantity = ?, category = COALESCE(?, category) WHERE id = ?',
+    [data.name, data.quantity, data.category ?? null], changes);
+}
+
+export function updateProductStatusById(id, purchased) {
+  return updateProductFields(id, 'UPDATE products SET purchased = ? WHERE id = ?',
+    [Number(purchased)], { purchased: Number(purchased) });
 }

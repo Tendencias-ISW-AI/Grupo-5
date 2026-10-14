@@ -2,7 +2,7 @@
 
 **Branch**: `feature/SMARLIST-19-hu-15-categorias-productos` | **Date**: 2026-10-14 | **Spec**: [spec.md](spec.md)
 
-**Input**: Especificación de `specs/005-categorias-productos/spec.md`, alcance backend autorizado.
+**Input**: Especificación de `specs/006-categorias-productos/spec.md`, alcance backend autorizado.
 
 ## Summary
 
@@ -47,7 +47,7 @@ Re-evaluación después del diseño: PASS.
 ### Documentation (this feature)
 
 ```text
-specs/005-categorias-productos/
+specs/006-categorias-productos/
 ├── spec.md, plan.md, research.md, data-model.md, quickstart.md, tasks.md, validation.md
 ├── contracts/products.openapi.yaml
 └── checklists/requirements.md

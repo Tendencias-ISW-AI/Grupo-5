@@ -6,7 +6,7 @@ Fecha: 2026-10-14. Rama: `feature/SMARLIST-19-hu-15-categorias-productos`, cread
 
 Specify → Clarify → Plan → Tasks → Analyze → Implement, sin pausas entre fases, por autorización del usuario.
 
-- **Specify**: plantilla resuelta con los scripts de `.specify/`; `specs/005-categorias-productos/` (siguiente número secuencial) registrado en `.specify/feature.json` (local). Criterios y subtareas tomados de Jira SMARLIST-19. Checklist 16/16.
+- **Specify**: plantilla resuelta con los scripts de `.specify/`; `specs/006-categorias-productos/` (siguiente número secuencial) registrado en `.specify/feature.json` (local). Criterios y subtareas tomados de Jira SMARLIST-19. Checklist 16/16.
 - **Clarify**: ocho decisiones registradas en `spec.md`. Alcance solo backend por decisión expresa del usuario: los criterios 6 y 7 dependen de SMARLIST-15 (en curso sobre `useShoppingList`). Sin marcadores pendientes. Checklist 16/16.
 - **Plan**: `setup-plan.sh`; plan, research, data-model, contrato OpenAPI y quickstart. Constitution Check PASS antes y después del diseño (IV con la limitación declarada de MySQL real).
 - **Tasks**: `setup-tasks.sh`; 17 tareas por historia con trazabilidad a FR/CA.
@@ -59,3 +59,19 @@ La forma del producto cambia por requisito (CA-03/CA-07), por lo que las asercio
 - La migración real (`db:init` sobre MySQL con datos) y las suites MySQL no se ejecutaron por falta de credenciales locales. Recomendado antes del merge: crear `backend/.env`, ejecutar `npm run db:init` y `npm run test:mysql`.
 - CA-06 y CA-07 (frontend) quedan pendientes hasta que SMARLIST-15 esté en `main`.
 - Las respuestas de la API ahora incluyen `category`; los clientes que comparen la forma exacta deben contemplarla.
+
+## Integración con SMARLIST-15 (main 8d352f1)
+
+Durante la entrega se fusionó en `main` la integración full stack (PR #17: React consume la API y se agrega `PATCH /api/products/:id/status`). Se integró `main` en esta rama mediante merge y se resolvieron los conflictos:
+
+- Carpeta de especificación renombrada de `005-categorias-productos` a `006-categorias-productos`, porque `005-integracion-full-stack` ya existe en `main`.
+- Repositorio: se conserva `updateProductFields` de `main`; `updateProductById` usa `category = COALESCE(?, category)` y el SELECT FOR UPDATE incluye `category`, así PUT sin categoría la conserva y la devuelve.
+- Servicio: PATCH de estado también devuelve `category`.
+- **Compatibilidad del frontend**: `src/services/productsApi.js` exigía exactamente cuatro atributos; con la API nueva habría rechazado todas las respuestas. Se ajustó `isProduct` para aceptar `category` como quinto atributo de texto no vacío (sigue rechazando atributos desconocidos). Es el único cambio en el frontend; el selector y la visualización (CA-06/CA-07) siguen pendientes.
+- Pruebas: `productStatus.test.js` ampliada con `category`; nuevas pruebas de PATCH con categoría y de `productsApi` con `category`.
+
+| Comando (tras integrar main) | Resultado |
+|---|---|
+| `backend/` `npm test` | 225 aprobadas, 74 omitidas (MySQL opt-in) |
+| Raíz `npm test` | 142/142 aprobadas |
+| Raíz `npm run build` | Correcta |

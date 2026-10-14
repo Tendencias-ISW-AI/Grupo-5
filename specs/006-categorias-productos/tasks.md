@@ -5,7 +5,7 @@ description: "Lista de tareas de SMARLIST-19 / HU-15 (backend)"
 
 # Tasks: SMARLIST-19 / HU-15 — Categorías de productos (backend)
 
-**Input**: `specs/005-categorias-productos/` (spec, plan, research, data-model, contracts, quickstart).
+**Input**: `specs/006-categorias-productos/` (spec, plan, research, data-model, contracts, quickstart).
 
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/products.openapi.yaml.
 
@@ -77,7 +77,7 @@ description: "Lista de tareas de SMARLIST-19 / HU-15 (backend)"
 - [X] T014 [P] Actualizar las suites MySQL existentes con `category` y crear `backend/tests/productCategories.mysql.test.js` (CP-13) [MYSQL REAL].
 - [X] T015 [P] Documentar HU-15 en `README.md` y `docs/architecture.md`.
 - [X] T016 Ejecutar `npm test` en `backend/` y `npm test`/`npm run build` en la raíz; confirmar sin cambios en `src/` del frontend.
-- [X] T017 Registrar resultados, cobertura y limitaciones en `specs/005-categorias-productos/validation.md`.
+- [X] T017 Registrar resultados, cobertura y limitaciones en `specs/006-categorias-productos/validation.md`.
 
 ---
 

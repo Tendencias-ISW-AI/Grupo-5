@@ -88,18 +88,27 @@ describe('SMARLIST-19 / HU-15 PUT con categoría', () => {
     expect(response.body).toEqual({ id: row.id, name: 'Leche entera', quantity: 2, purchased: true, category: 'Bebidas' });
     expect(mocks.execute.mock.calls).toEqual([
       ['SELECT id, name, quantity, purchased, category FROM products WHERE id = ? FOR UPDATE', [row.id]],
-      ['UPDATE products SET name = ?, quantity = ?, category = ? WHERE id = ?', ['Leche entera', 2, 'Bebidas', row.id]],
+      ['UPDATE products SET name = ?, quantity = ?, category = COALESCE(?, category) WHERE id = ?', ['Leche entera', 2, 'Bebidas', row.id]],
     ]);
     expect(mocks.commit).toHaveBeenCalledOnce();
   });
 
-  it('CP-04: sin categoría conserva la actual', async () => {
+  it('CP-04: sin categoría conserva la actual (COALESCE con null)', async () => {
     const response = await request(app).put(`/api/products/${row.id}`).send({ name: 'Leche', quantity: 3 });
     expect(response.status).toBe(200);
     expect(response.body.category).toBe('Lácteos');
     expect(mocks.execute.mock.calls[1]).toEqual(
-      ['UPDATE products SET name = ?, quantity = ?, category = ? WHERE id = ?', ['Leche', 3, 'Lácteos', row.id]],
+      ['UPDATE products SET name = ?, quantity = ?, category = COALESCE(?, category) WHERE id = ?', ['Leche', 3, null, row.id]],
     );
+  });
+
+  it('PATCH de estado conserva y devuelve la categoría', async () => {
+    const id = '0f8fad5b-d9cb-469f-a165-70867728950e';
+    mocks.execute.mockResolvedValueOnce([[{ ...row, id, purchased: 0 }], []]);
+    const response = await request(app).patch(`/api/products/${id}/status`).send({ purchased: true });
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ id, name: 'Leche', quantity: 1, purchased: true, category: 'Lácteos' });
+    expect(mocks.execute.mock.calls[1]).toEqual(['UPDATE products SET purchased = ? WHERE id = ?', [1, id]]);
   });
 
   it.each(invalidCategories.map(category => [category]))('CP-05: PUT con categoría %j responde400 sin SQL', async category => {

@@ -1,0 +1,112 @@
+openapi: 3.0.3
+info:
+  title: SmartList HU-14 / SMARLIST-15
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000/api
+paths:
+  /products:
+    get:
+      responses:
+        '200':
+          description: Colección completa ordenada por ID
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Product' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Editable' }
+      responses:
+        '201': { $ref: '#/components/responses/Product' }
+        '400': { $ref: '#/components/responses/Invalid' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /products/{id}:
+    parameters:
+      - { $ref: '#/components/parameters/Id' }
+    put:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Editable' }
+      responses:
+        '200': { $ref: '#/components/responses/Product' }
+        '400': { $ref: '#/components/responses/Invalid' }
+        '404': { $ref: '#/components/responses/Missing' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+    delete:
+      parameters:
+        - { $ref: '#/components/parameters/Uuid' }
+      responses:
+        '204': { description: Eliminado, sin cuerpo }
+        '400': { $ref: '#/components/responses/Invalid' }
+        '404': { $ref: '#/components/responses/Missing' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /products/{id}/status:
+    parameters:
+      - { $ref: '#/components/parameters/Uuid' }
+    patch:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [purchased]
+              properties:
+                purchased: { type: boolean }
+      responses:
+        '200': { $ref: '#/components/responses/Product' }
+        '400': { $ref: '#/components/responses/Invalid' }
+        '404': { $ref: '#/components/responses/Missing' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+components:
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, minLength: 1, maxLength: 36 }
+    Uuid:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+  schemas:
+    Editable:
+      type: object
+      additionalProperties: false
+      required: [name, quantity]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 150 }
+        quantity: { type: integer, minimum: 1, maximum: 2147483647 }
+    Product:
+      type: object
+      additionalProperties: false
+      required: [id, name, quantity, purchased]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        quantity: { type: integer, minimum: 1 }
+        purchased: { type: boolean }
+  responses:
+    Product:
+      description: Producto confirmado completo
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Product' }
+    Invalid:
+      description: HTTP 400, error.message de validación, sin SQL
+    Missing:
+      description: HTTP 404, error.message Producto no encontrado.
+    Unavailable:
+      description: HTTP 503, error Servicio temporalmente no disponible; otros errores 500 seguros
