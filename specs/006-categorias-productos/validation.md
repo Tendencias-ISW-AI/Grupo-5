@@ -75,3 +75,17 @@ Durante la entrega se fusionó en `main` la integración full stack (PR #17: Rea
 | `backend/` `npm test` | 225 aprobadas, 74 omitidas (MySQL opt-in) |
 | Raíz `npm test` | 142/142 aprobadas |
 | Raíz `npm run build` | Correcta |
+
+## Verificación con MySQL real
+
+Con `backend/.env` configurado localmente (no versionado):
+
+| Paso | Resultado |
+|---|---|
+| `npm run db:init` sobre MySQL local sin `smartlist_db` | Base y tabla creadas con `category`: `{"databaseCreated":true,"tableCreated":true,"categoryAdded":false}` |
+| `npm run test:mysql` | 74/74 aprobadas en 6 suites (incluye las 9 nuevas de `productCategories.mysql.test.js` y las de PATCH de SMARLIST-15) |
+| Migración de tabla anterior (simulada sobre la tabla recién creada y vacía: se quitó `category` y se insertó un producto comprado de prueba) | `db:init` → `"categoryAdded":true`; el producto conservó id, nombre, cantidad y estado y quedó con `category = "Otros"` |
+| Segunda ejecución de `db:init` | `"categoryAdded":false`, sin DDL |
+| Limpieza | Producto de prueba eliminado; tabla final vacía con la estructura actual |
+
+CA-05 queda verificado contra MySQL real. Nota operativa: si la contraseña contiene `#`, en `.env` debe ir entre comillas (`DB_PASSWORD='...'`), porque sin comillas `#` inicia un comentario.
