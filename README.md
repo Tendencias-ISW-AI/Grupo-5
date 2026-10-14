@@ -244,7 +244,7 @@ La información se almacena localmente en el navegador y origen utilizados, sin 
 
 ## Ampliación: backend y Spec-Driven Development
 
-El frontend conserva su estructura en la raíz, sus comandos npm y la persistencia con localStorage. El backend vive en `backend/` con un `package.json` y un lockfile independientes. HU-09 consulta productos persistidos en MySQL y HU-11 (SMARLIST-12) permite registrarlos. La integración de React, edición, eliminación y cambio de estado en la API siguen pendientes. Los requisitos originales de HU-01 a HU-08 documentan el alcance frontend anterior; esta ampliación no los modifica.
+El frontend conserva su estructura en la raíz, sus comandos npm y la persistencia con localStorage. El backend vive en `backend/` con un `package.json` y un lockfile independientes. HU-09 consulta productos, HU-11 (SMARLIST-12) los registra y HU-12 (SMARLIST-13) permite editar nombre y cantidad en MySQL. La integración de React, eliminación y cambio de estado en la API siguen pendientes. Los requisitos originales de HU-01 a HU-08 documentan el alcance frontend anterior; esta ampliación no los modifica.
 
 ### Instalar y ejecutar el backend
 
@@ -283,7 +283,7 @@ npm start
 
 `GET http://localhost:3000/api/products` devuelve HTTP 200 y un arreglo JSON directo, ordenado por ID ascendente con comparación binaria. Una lista vacía devuelve `[]`. Cada registro contiene `id`, `name`, `quantity` y `purchased` booleano; quantity no expande registros. La consulta conserva datos y nombres repetidos. MySQL no disponible devuelve HTTP 503 con `{"error":"Servicio temporalmente no disponible"}`; errores inesperados conservan la respuesta 500 genérica existente. `/health` sigue siendo independiente de MySQL.
 
-`npm test` no necesita MySQL real; las suites reales se omiten por defecto. `npm run test:mysql` las activa explícitamente y requiere `smartlist_db` local preparada. Se ejecutan secuencialmente para proteger las comprobaciones de colección inicial/final. Crean fixtures identificables y limpian únicamente sus IDs; verifican consulta, registro, orden, restricciones y persistencia. No utilizar las suites reales en producción. Para comprobación manual, consultar la API varias veces y reiniciar el servidor: los datos y su orden deben permanecer. No existen endpoints PUT, PATCH o DELETE de productos ni importación desde localStorage.
+`npm test` no necesita MySQL real; las suites reales se omiten por defecto. `npm run test:mysql` las activa explícitamente y requiere `smartlist_db` local preparada. Se ejecutan secuencialmente para proteger las comprobaciones de colección inicial/final. Crean fixtures identificables y limpian únicamente sus IDs; verifican consulta, registro, edición, orden, restricciones y persistencia. No utilizar las suites reales en producción. Para comprobación manual, consultar la API varias veces y reiniciar el servidor: los datos y su orden deben permanecer. No existen endpoints PATCH o DELETE de productos ni importación desde localStorage.
 
 Artefactos y evidencia de HU-09: `specs/001-consultar-productos/`. La clave Jira definitiva todavía no está confirmada.
 
@@ -296,6 +296,16 @@ El nombre debe ser string válido, no vacío después de trim y de hasta 150 car
 Para comprobar manualmente, enviar POST con Content-Type application/json, recuperar el ID mediante GET y probar quantity string o nombre vacío:400. Los registros manuales son persistentes; esta historia no incluye una API para eliminarlos. Las pruebas automatizadas limpian solo sus propios datos. Un reintento de POST puede crear otro registro: no se implementa deduplicación de solicitudes.
 
 Artefactos SDD y evidencia: `specs/002-registro-productos/`. Mantenimiento separado en la misma rama: encabezado h1 corregido a `SmartList`, sin modificar pruebas, estilos, funcionalidades React ni localStorage.
+
+### HU-12 / SMARLIST-13: editar productos
+
+`PUT http://localhost:3000/api/products/:id` exige un objeto JSON completo con únicamente `name` y `quantity`, usando las mismas validaciones de POST. Ejemplo: `{"name":"  Arroz integral  ","quantity":3}`. Devuelve200 con el nombre normalizado, cantidad actualizada y los valores originales de `id` y `purchased`, también si no cambian los datos. No genera UUID ni crea productos inexistentes.
+
+El ID es un string bien formado de1..36 unidades UTF-16, no vacío y sin espacios externos; no se normaliza ni se restringe a UUID para conservar compatibilidad con HU-09. ID/cuerpo inválidos:400; ID válido inexistente con cuerpo válido:404 y `{"error":{"message":"Producto no encontrado."}}`. No se admite id/purchased o campos adicionales en el cuerpo. Infraestructura503/500 mantiene contratos existentes.
+
+La edición usa una conexión y transacción InnoDB: consulta por ID con FOR UPDATE y UPDATE parametrizado únicamente de nombre/cantidad. La lectura determina existencia; no se interpreta cero cambios como404. Se preserva el estado vigente de compra y no se alteran otros registros. El esquema existente, sin triggers transformadores, permite devolver los datos confirmados sin una tercera consulta.
+
+Para comprobar manualmente, registrar un producto, conservar su ID, enviar PUT, recuperarlo por GET y repetir los mismos valores:200. Probar cantidad string:400 y un ID válido inexistente:404. Las pruebas reales verifican ambos estados, reinicio y limpieza exclusiva de fixtures; no modificar registros ajenos. Artefactos y resultados en `specs/003-edicion-productos/`. Frontend y localStorage permanecen intactos.
 
 ### Spec Kit con Codex
 
