@@ -447,3 +447,19 @@ La salida añade `creationOrderAdded`. Repetir la inicialización no cambia secu
 Validación: `npm test -- --maxWorkers=1` en raíz y backend; `npm run build` en raíz; `npm run test:mysql` en backend con una base local preparada. Las pruebas de migración crean y eliminan únicamente esquemas desechables con prefijo smartlist_order_test_ y requieren permiso CREATE/DROP DATABASE. Incluyen esquema vacío, anteriores sin/con categoría, migración interrumpida e idempotencia. Las pruebas HTTP verifican registros rápidos, concurrencia, reconexión y reinicio real del proceso servidor.
 
 Comprobación manual: registrar Leche → Queso → Pan → Jabón en la vista sin agrupación, recargar y reiniciar el backend; consultar GET /api/products y comprobar el mismo orden. Los filtros conservan el orden relativo; la agrupación opcional conserva el orden dentro de cada categoría. Las pruebas de React remontan la aplicación con HTTP simulado y no sustituyen una comprobación visual en navegador.
+
+
+## Revisión automática con CodeRabbit (SMARLIST-28)
+
+CodeRabbit revisa automáticamente cada Pull Request dirigido a `main`, en español, siguiendo `AGENTS.md` y `backend/AGENTS.md`. La configuración está en `.coderabbit.yaml` (idioma `es-ES` e instrucciones por ruta para frontend, backend, pruebas, specs y documentación). Los PR en borrador no se revisan hasta marcarse como listos.
+
+**Instalación:** el dueño de la organización Tendencias-ISW-AI debe aprobar la solicitud de la app en **Settings → GitHub Apps** (solicitudes pendientes) y darle acceso a Grupo-5-SmartList.
+
+**Uso:** al abrir el PR, CodeRabbit publica un resumen y comentarios en la pestaña *Conversation*. Se le puede responder mencionando `@coderabbitai` (por ejemplo `@coderabbitai review` para repetir la revisión).
+
+**Flujo en Jira:**
+
+| Evento en GitHub | Estado del ticket en Jira |
+|---|---|
+| Se abre el PR hacia `main` | Testing |
+| Revisión aprobada, checks de CI en verde y merge | Listo |
