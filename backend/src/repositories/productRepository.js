@@ -18,7 +18,7 @@ export async function deleteProductById(id) {
   return result.affectedRows;
 }
 
-export async function updateProductById(id, data) {
+async function updateProductFields(id, query, values, changes) {
   const connection = await getPool().getConnection();
   let reusable = true;
   try {
@@ -30,9 +30,9 @@ export async function updateProductById(id, data) {
       await connection.rollback();
       return null;
     }
-    await connection.execute('UPDATE products SET name = ?, quantity = ? WHERE id = ?', [data.name, data.quantity, id]);
+    await connection.execute(query, [...values, id]);
     await connection.commit();
-    return { id: rows[0].id, name: data.name, quantity: data.quantity, purchased: rows[0].purchased };
+    return { ...rows[0], ...changes };
   } catch (error) {
     try {
       await connection.rollback();
@@ -45,4 +45,14 @@ export async function updateProductById(id, data) {
   } finally {
     if (reusable) connection.release();
   }
+}
+
+export function updateProductById(id, data) {
+  return updateProductFields(id, 'UPDATE products SET name = ?, quantity = ? WHERE id = ?',
+    [data.name, data.quantity], { name: data.name, quantity: data.quantity });
+}
+
+export function updateProductStatusById(id, purchased) {
+  return updateProductFields(id, 'UPDATE products SET purchased = ? WHERE id = ?',
+    [Number(purchased)], { purchased: Number(purchased) });
 }

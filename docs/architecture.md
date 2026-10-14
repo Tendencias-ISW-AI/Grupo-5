@@ -6,7 +6,7 @@ Este documento describe la arquitectura técnica de SmartList, una aplicación w
 
 Su propósito es establecer la organización del código, la distribución de responsabilidades, el modelo de datos y las decisiones técnicas que orientarán el desarrollo incremental de las historias de usuario.
 
-La implementación debe respetar los requisitos definidos en `docs/requirements.md` y las instrucciones de `AGENTS.md`.
+La implementación debe respetar los requisitos y las instrucciones aplicables. HU-01 a HU-08 conservan el contexto histórico; HU-14 / SMARLIST-15 autoriza la arquitectura vigente React → servicio HTTP → API por capas → MySQL. Las decisiones iniciales de persistencia local ya no están activas.
 
 ## 2. Estilo arquitectónico
 
@@ -14,11 +14,11 @@ SmartList utilizará una arquitectura frontend basada en componentes de React, o
 
 La aplicación será una Single Page Application (SPA), donde la interfaz y el estado se actualizan dinámicamente sin requerir recargas completas de la página durante las operaciones habituales.
 
-Se adopta una estructura modular sencilla, sin implementar Clean Architecture, microservicios ni una arquitectura de múltiples capas.
+React mantiene componentes y hooks sencillos; el backend utiliza las capas descritas en la sección15. Sin Clean Architecture, microservicios ni capas adicionales.
 
 ### Justificación
 
-El alcance de SmartList es reducido y no requiere procesamiento en servidor ni integraciones externas.
+El alcance sigue siendo reducido; la integración autorizada utiliza el backend existente para persistir productos sin añadir nuevas funcionalidades de negocio.
 
 La separación de componentes y lógica permite mantener un código comprensible, reutilizable y fácil de probar, evitando complejidad innecesaria.
 
@@ -31,7 +31,7 @@ La separación de componentes y lógica permite mantener un código comprensible
 | JavaScript | Lógica de la aplicación |
 | CSS | Presentación y diseño adaptable |
 | React Hooks | Gestión del estado y comportamiento |
-| localStorage | Persistencia de datos del navegador |
+| MySQL + API Express | Persistencia vigente de productos |
 | Vitest | Pruebas automatizadas |
 
 La implementación se realizará utilizando JavaScript con JSX, sin TypeScript.
@@ -188,7 +188,7 @@ Cada producto tendrá la siguiente estructura lógica:
 - Se permiten productos con nombres repetidos.
 - Las operaciones deben identificar los productos mediante `id`.
 
-No se requiere un modelo relacional ni una base de datos externa.
+La tabla MySQL existente conserva estos cuatro atributos, sin cambios de esquema en HU-14.
 
 ## 8. Flujo de información
 
@@ -199,8 +199,8 @@ El flujo seguirá el patrón de datos unidireccional de React.
 1. El usuario ingresa nombre y cantidad en `ShoppingForm`.
 2. El formulario valida los datos.
 3. Si son válidos, comunica la solicitud de registro.
-4. `useShoppingList` crea un producto con identificador único y estado pendiente.
-5. React actualiza el estado de la lista.
+4. `useShoppingList` solicita POST mediante `productsApi`; el servidor genera ID y estado pendiente.
+5. React incorpora únicamente el producto confirmado por el servidor.
 6. `ShoppingList` refleja el nuevo producto.
 7. El formulario limpia los campos tras confirmar el registro.
 
@@ -210,27 +210,13 @@ Las acciones de edición, eliminación y cambio de estado serán notificadas des
 
 Los componentes recibirán los datos actualizados a través de las propiedades de React.
 
-## 9. Persistencia
+## 9. Persistencia vigente — HU-14
 
-La persistencia de HU-07 utiliza `localStorage` bajo la clave `smartlist.products`. El módulo `src/utils/shoppingListStorage.js` encapsula lectura, validación y escritura de un arreglo JSON.
+MySQL es la única persistencia activa. `productsApi.js` centraliza fetch, URL pública VITE_API_BASE_URL, JSON, validación básica de respuestas y errores; DELETE204 no deserializa JSON. La API genera IDs y confirma los datos.
 
-### Comportamiento esperado
+El hook carga mediante GET cancelable y protegido por generación de montaje. Distingue loading/ready/error y bloquea escrituras hasta cargar. Una cola global serializa mutaciones leyendo los productos confirmados vigentes al ejecutar; el checkbox envía el booleano deseado por PATCH. Los controles esperan confirmación y los fallos conservan colección/borradores. No hay actualización optimista ni reintentos automáticos.
 
-- Recuperar los productos almacenados al inicializar la aplicación.
-- Guardar los cambios en la lista.
-- Mantener identificadores, nombres, cantidades y estados.
-- Gestionar errores de lectura, escritura y datos inválidos.
-- Inicializar una lista vacía cuando no existan datos válidos.
-
-El hook recupera los datos mediante inicialización diferida de `useState`. React mantiene la única colección vigente. Un efecto dependiente de `items` guarda cambios confirmados; una referencia a la colección anterior evita escrituras durante el montaje, también bajo StrictMode. Las operaciones existentes conservan sus contratos. El estado del filtro y los borradores locales no se almacenan.
-
-La recuperación exige los cuatro atributos del modelo, IDs string no vacíos y únicos, nombres string no vacíos, cantidades numéricas enteras positivas y estados booleanos. No convierte tipos ni genera IDs; conserva los valores y el orden válidos. Si un registro falla, se rechaza la colección completa.
-
-Sin clave se inicia vacío. JSON corrupto o estructura inválida inicia vacío sin sobrescribir en el montaje; una modificación válida confirmada sustituye el contenido previo. Fallos de acceso o lectura deshabilitan escrituras durante esa sesión. Fallos de escritura mantienen el estado en memoria y se reintentan en el próximo cambio confirmado. No se muestra un aviso visual ni se implementa sincronización entre pestañas. El almacenamiento está limitado al navegador y origen utilizados.
-
-El almacenamiento local no se considerará un mecanismo de sincronización entre dispositivos.
-
-Antes de HU-07, la lista podrá funcionar únicamente en memoria.
+No se lee, escribe, migra ni borra automáticamente la clave histórica smartlist.products. Esos datos no aparecen en la lista API. shoppingListStorage.js permanece como utilidad histórica con pruebas aisladas, sin importación de producción. Filtros, resumen y borradores no se persisten.
 
 ## 10. Validaciones y manejo de errores
 
@@ -267,7 +253,7 @@ Las pruebas se agregarán progresivamente con cada historia de usuario.
 
 Para HU-01, Vitest utiliza jsdom (dependencia de desarrollo) y las APIs `createRoot` y `act` de React para probar el formulario, el hook y la actualización de la lista. Estas pruebas no sustituyen la verificación en navegador.
 
-`validateProduct`, exportada desde `useShoppingList.js`, comparte las reglas de nombre y cantidad entre el formulario y el hook. `addProduct(name, quantity)` devuelve `{ success, errors }`; el formulario limpia sus campos únicamente cuando `success` es `true`. El identificador se genera con `crypto.randomUUID()` en navegadores modernos mediante localhost o HTTPS. HU-07 sincroniza los cambios confirmados con localStorage cuando la lectura inicial permite escrituras.
+`validateProduct`, exportada desde `useShoppingList.js`, comparte validación del formulario y hook, alineada con límites MySQL: nombre válido/trim hasta150 caracteres Unicode y cantidad entre1 y2147483647. Las operaciones ahora devuelven Promise de `{ success, errors }`; limpiar/cerrar formulario solo tras éxito. El servidor genera UUID y confirma persistencia.
 
 ## 12. Decisiones arquitectónicas
 
@@ -277,7 +263,7 @@ HU-06 mantiene `activeFilter` en `App`, inicialmente `all`, con opciones `pendin
 
 HU-05 utiliza un formulario local en `ShoppingItem`, con borradores de nombre y cantidad separados del estado de la lista. Cancelar descarta el borrador; Guardar utiliza `updateProduct(id, data)`, que devuelve `{ success, errors }`. Se reutiliza `validateProduct` en interfaz y hook sin modificar el formulario de registro. Solo se actualizan `name` y `quantity`; el ID y el estado de compra se conservan desde el producto vigente. Los campos de edición utilizan `useId` para sus etiquetas y errores accesibles.
 
-### DA-01. Aplicación frontend sin backend
+### DA-01. Decisión histórica: aplicación frontend sin backend
 
 **Decisión:** desarrollar SmartList completamente en el navegador.
 
@@ -309,7 +295,7 @@ HU-05 utiliza un formulario local en `ShoppingItem`, con borradores de nombre y 
 
 **Consecuencia:** los componentes deben recibir los datos y callbacks que necesitan, manteniendo un flujo de información claro.
 
-### DA-05. Persistencia mediante localStorage
+### DA-05. Decisión histórica: persistencia mediante localStorage
 
 **Decisión:** almacenar los productos en el navegador.
 
@@ -338,7 +324,7 @@ En caso de contradicción entre documentos, se debe informar la inconsistencia a
 
 ## 15. Ampliación autorizada: base técnica del backend
 
-Las secciones anteriores describen el frontend y sus HU-01 a HU-08. La nueva configuración es independiente en `backend/`; no sustituye localStorage ni conecta React al servidor. Los requisitos originales permanecen como referencia del alcance anterior.
+Las secciones anteriores describen el frontend y sus HU-01 a HU-08. El backend vive en `backend/`; la integración autorizada de HU-14 conecta React y sustituye la persistencia activa local por MySQL. Los requisitos originales permanecen como referencia del alcance anterior.
 
 Arquitectura objetivo: Routes → Controllers → Services → Repositories → MySQL. Routes define endpoints; Controllers interpreta HTTP; Services aplica validaciones y reglas; Repositories ejecuta SQL parametrizado; Config concentra entorno y pool; Middleware gestiona errores transversales.
 
@@ -360,6 +346,14 @@ HU-13 / SMARLIST-14 agrega DELETE `/api/products/:id` en las mismas capas. Servi
 
 Es eliminación física, sin atributos nuevos,papelera o recuperación. Una sentencia InnoDB con autocommit vigente no necesita consulta previa o transacción adicional. GET/POST/PUT permanecen intactos salvo extracción mínima de validaciónID y error404 compartidos.
 
-Las pruebas aisladas usan Vitest/Supertest con mocks; `npm run test:mysql` activa suites reales secuenciales con fixtures propios, limpieza por sus IDs y comparación de colección/esquema inicial y final, incluyendo GET/POST/PUT/DELETE HTTP y reinicio del proceso. Las pruebas nunca eliminan registros anteriores del usuario. Pendientes: cambio de estado e integración frontend. React y localStorage permanecen independientes. No hay ORM, migraciones, autenticación ni Docker.
+Las pruebas aisladas usan Vitest/Supertest con mocks; `npm run test:mysql` activa suites reales secuenciales con fixtures propios, limpieza por sus IDs y comparación de colección/esquema inicial y final, incluyendo GET/POST/PUT/DELETE HTTP y reinicio del proceso. Las pruebas nunca eliminan registros anteriores del usuario. HU-14 completa cambio de estado e integración React–API. LocalStorage histórico permanece intacto, sin uso activo. No hay ORM, migraciones, autenticación ni Docker.
 
 Spec Kit 1.0.13 está inicializado en la raíz con integración oficial Codex, scripts Bash y habilidades `.agents/skills/speckit-*`. La Constitution v1.0.0 está aprobada. HU-09 conserva los artefactos del flujo SDD en `specs/001-consultar-productos`; las fases consecutivas fueron autorizadas expresamente sin cambios de rama. Las futuras funcionalidades siguen Specify → Clarify → Plan → Tasks → Analyze → Implement con revisión y aprobaciones aplicables. El AGENTS.md original se conserva y `backend/AGENTS.md` complementa las reglas de la ampliación.
+
+## 16. HU-14 / SMARLIST-15: estado e integración
+
+PATCH `/api/products/:id/status` reutiliza las capas vigentes y la validación UUID de DELETE. El servicio exige un objeto exclusivo purchased booleano; inválidos400 antes de SQL, ausentes404, indisponibilidad503 segura. El repositorio comparte con PUT un auxiliar transaccional privado: SELECT FOR UPDATE y UPDATE purchased parametrizado con WHERE id. Mantiene otros atributos y devuelve200 incluso si el estado coincide. No modifica esquema ni contratos anteriores.
+
+`App` presenta carga/error, conecta las operaciones asíncronas y conserva filtros y ShoppingSummary como valores derivados de items. Formularios conservan borradores tras rechazo; solicitudes en curso bloquean controles, sin perder confirmaciones si un filtro desmonta el formulario. React no genera IDs. La colección del estado y su referencia de lectura apuntan al mismo dato confirmado, sin segunda colección persistente.
+
+Pruebas frontend utilizan API simulada independiente de localStorage, await act y respuestas copiadas. Conservan111 casos funcionales adaptados y añaden fallos/concurrencia/StrictMode. Backend mantiene pruebas aisladas y MySQL real con fixtures propios, incluyendo reinicio. Evidencia y cobertura en specs/005-integracion-full-stack/validation.md. Sin dependencias nuevas ni experiencia avanzada de reintentos/sincronización entre clientes.

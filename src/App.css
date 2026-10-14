@@ -9,6 +9,26 @@ body {
   margin: 0;
 }
 
+button:disabled,
+input:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.product-name,
+.error {
+  overflow-wrap: anywhere;
+}
+
+.edit-form {
+  width: 100%;
+  min-width: 0;
+}
+
+.form-field input {
+  min-width: 0;
+}
+
 .app {
   max-width: 48rem;
   margin: 2rem auto;
