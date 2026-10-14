@@ -18,6 +18,7 @@ La aplicación contempla las siguientes funcionalidades:
 - Eliminar productos.
 - Editar la información de los productos.
 - Filtrar productos según su estado.
+- Buscar productos por nombre, sin distinguir mayúsculas ni tildes.
 - Conservar la lista mediante MySQL y la API REST.
 - Consultar un resumen de productos comprados y pendientes.
 
@@ -156,6 +157,14 @@ Abrir en el navegador la dirección local indicada por Vite.
 6. Sin coincidencias deben aparecer los mensajes del filtro; si no queda ningún producto, debe mostrarse "Tu lista de compras está vacía" en cualquier filtro.
 7. Cambiar a un filtro que oculta un producto en edición descarta su borrador sin guardar. Revisar también una ventana móvil sin desbordamiento horizontal.
 
+#### Verificación manual de HU-17 (SMARLIST-21)
+
+1. Registrar "Limón", "Leche", "Lechuga" y "Arroz". El campo "Buscar producto" aparece sobre los filtros y la lista, y "Limpiar búsqueda" está deshabilitado.
+2. Escribir `l`, `le`, `lec`: la lista se reduce en cada pulsación. `limon`, `LIMÓN` o `  limón  ` encuentran "Limón".
+3. Marcar "Lechuga", buscar `lech` y alternar filtros: Todos muestra ambos, Pendientes solo "Leche" y Comprados solo "Lechuga".
+4. Buscar `xyz`: aparece `No se encontraron productos que coincidan con "xyz"` y el resumen sigue representando toda la lista.
+5. Pulsar "Limpiar búsqueda": el campo queda vacío y con foco, y reaparecen los productos del filtro activo. Al recargar, la búsqueda vuelve a estar vacía.
+
 #### Verificación manual de HU-07
 
 1. Agregar productos, editar nombre y cantidad, marcar o desmarcar y recargar: los atributos deben conservarse.
@@ -211,6 +220,10 @@ El trabajo se organiza en historias de usuario registradas en Jira y distribuida
 - HU-07: Guardar y recuperar productos.
 - HU-08: Visualizar resumen de compras.
 
+**Ampliaciones posteriores**
+
+- HU-17 (SMARLIST-21): Buscar productos por nombre.
+
 Cada historia cuenta con criterios de aceptación que permiten verificar su cumplimiento.
 
 ## Desarrollo asistido por IA
@@ -234,7 +247,7 @@ El código generado por IA debe ser revisado y validado por los desarrolladores 
 
 **En desarrollo académico.**
 
-HU-01 permite agregar productos con nombre y cantidad y validar los datos. HU-02 muestra todos los registros con su nombre, cantidad y estado recibido (Pendiente o Comprado), y el mensaje "Tu lista de compras está vacía" cuando no hay productos. HU-03 permite marcar y desmarcar cada producto mediante un checkbox accesible; los comprados muestran su nombre tachado. HU-04 permite eliminar cada producto mediante su botón, conservando los demás registros. Al eliminar el último, aparece el mensaje de lista vacía. HU-05 permite editar nombre y cantidad, validar, guardar o cancelar sin alterar el identificador ni el estado de compra. HU-06 permite filtrar por Todos, Pendientes y Comprados, con indicador del filtro activo y mensajes sin resultados. Los filtros conservan los datos y el orden de registro. Todas estas operaciones actualizan la interfaz inmediatamente. HU-07 introdujo persistencia local, sustituida por MySQL en la integración HU-14; se conserva la recuperación tras recargar o reabrir. HU-08 muestra el total global de registros, pendientes y comprados, con actualización automática y sin depender del filtro. Las ocho historias del alcance inicial están implementadas; la revisión final del proyecto sigue correspondiendo al equipo.
+HU-01 permite agregar productos con nombre y cantidad y validar los datos. HU-02 muestra todos los registros con su nombre, cantidad y estado recibido (Pendiente o Comprado), y el mensaje "Tu lista de compras está vacía" cuando no hay productos. HU-03 permite marcar y desmarcar cada producto mediante un checkbox accesible; los comprados muestran su nombre tachado. HU-04 permite eliminar cada producto mediante su botón, conservando los demás registros. Al eliminar el último, aparece el mensaje de lista vacía. HU-05 permite editar nombre y cantidad, validar, guardar o cancelar sin alterar el identificador ni el estado de compra. HU-06 permite filtrar por Todos, Pendientes y Comprados, con indicador del filtro activo y mensajes sin resultados. Los filtros conservan los datos y el orden de registro. Todas estas operaciones actualizan la interfaz inmediatamente. HU-07 introdujo persistencia local, sustituida por MySQL en la integración HU-14; se conserva la recuperación tras recargar o reabrir. HU-08 muestra el total global de registros, pendientes y comprados, con actualización automática y sin depender del filtro. Las ocho historias del alcance inicial están implementadas; la revisión final del proyecto sigue correspondiendo al equipo. HU-17 (SMARLIST-21) agrega una búsqueda por nombre que filtra mientras se escribe, sin distinguir mayúsculas ni tildes, combinada con el filtro de estado, con mensaje sin coincidencias y opción para limpiar. La búsqueda es estado de la interfaz: no se envía a la API ni se conserva al recargar. Artefactos SDD: `specs/004-busqueda-productos/`.
 
 Las funcionalidades se incorporan progresivamente mediante historias de usuario y control de versiones en GitHub.
 

@@ -212,6 +212,41 @@ input[aria-invalid="true"] {
 }
 
 
+/* BÚSQUEDA */
+
+.product-search {
+  display:flex;
+  flex-direction:column;
+  gap:0.25rem;
+  margin-bottom:1rem;
+}
+
+
+.product-search-controls {
+  display:flex;
+  gap:0.5rem;
+}
+
+
+.product-search-controls input {
+  flex:1;
+  min-width:0;
+}
+
+
+.product-search-controls button {
+  background:#6b7280;
+  color:white;
+}
+
+
+.product-search-controls button:disabled {
+  opacity:0.5;
+  cursor:not-allowed;
+  transform:none;
+}
+
+
 /* FILTROS */
 
 .shopping-filters {
@@ -319,6 +354,7 @@ input[aria-invalid="true"] {
   }
 
 
+  .product-search-controls,
   .shopping-filters {
     flex-direction:column;
   }
