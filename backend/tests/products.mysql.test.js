@@ -1,12 +1,10 @@
 import { randomUUID } from 'node:crypto';
-import { spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { createServer } from 'node:net';
-import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import app from '../src/app.js';
 import { closePool, getPool } from '../src/config/database.js';
+import { unusedPort, withServerProcess } from './serverProcess.helper.js';
 
 const fixtures = [
   { id: randomUUID(), name: 'HU09 prueba Arroz', quantity: 2, purchased: 0 },
@@ -78,38 +76,14 @@ describe.skipIf(process.env.RUN_MYSQL_TESTS !== '1')('HU-09 MySQL real (fixtures
   });
 
   it('recupera los mismos datos después de reiniciar el proceso servidor', async () => {
-    const probe = createServer();
-    probe.listen(0, '127.0.0.1');
-    await once(probe, 'listening');
-    const port = probe.address().port;
-    await new Promise(resolve => probe.close(resolve));
+    const port = await unusedPort();
     const results = [];
     for (let index = 0; index < 2; index++) {
-      const child = spawn(process.execPath, ['src/server.js'], {
-        cwd: fileURLToPath(new URL('../', import.meta.url)),
-        env: { ...process.env, PORT: String(port) },
-        windowsHide: true,
-        stdio: ['ignore', 'pipe', 'ignore'],
-      });
-      try {
-        await new Promise((resolve, reject) => {
-          const timer = setTimeout(() => reject(new Error('Servidor de prueba no disponible')), 5000);
-          child.once('error', () => { clearTimeout(timer); reject(new Error('No se pudo iniciar el proceso de prueba')); });
-          child.once('exit', () => { clearTimeout(timer); reject(new Error('El proceso terminó antes de estar disponible')); });
-          child.stdout.on('data', data => {
-            if (data.toString().includes('disponible')) { clearTimeout(timer); resolve(); }
-          });
-        });
-        const response = await fetch(`http://127.0.0.1:${port}/api/products`);
+      results.push(await withServerProcess(async origin => {
+        const response = await fetch(`${origin}/api/products`);
         expect(response.status).toBe(200);
-        results.push(await response.json());
-      } finally {
-        if (child.exitCode === null) {
-          const exited = once(child, 'exit');
-          child.kill();
-          await exited;
-        }
-      }
+        return response.json();
+      }, { port }));
     }
     expect(results[0].filter(product => ids.includes(product.id))).toEqual(expected);
     expect(results[1]).toEqual(results[0]);
