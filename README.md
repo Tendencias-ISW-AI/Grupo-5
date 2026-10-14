@@ -17,7 +17,8 @@ La aplicación contempla las siguientes funcionalidades:
 - Marcar productos como comprados o pendientes.
 - Eliminar productos.
 - Editar la información de los productos.
-- Filtrar productos según su estado.
+- Filtrar productos según su estado y categoría.
+- Asignar y visualizar categorías; agrupar por categoría.
 - Buscar productos por nombre, sin distinguir mayúsculas ni tildes.
 - Conservar la lista mediante MySQL y la API REST.
 - Consultar un resumen de productos comprados y pendientes.
@@ -77,7 +78,7 @@ La estructura puede incluir otros archivos necesarios para la configuración y e
 
 Para ejecutar SmartList localmente es necesario contar con:
 
-- Node.js en una versión LTS compatible con Vite.
+- Node.js 22.12.0 o superior, compatible con los engines del backend y las herramientas existentes.
 - npm.
 - Git.
 - Un editor de código, como Visual Studio Code.
@@ -204,7 +205,7 @@ npm run build
 
 ## Organización del desarrollo
 
-El trabajo se organiza en historias de usuario registradas en Jira y distribuidas en dos sprints:
+El alcance inicial se organizó en dos sprints. Esta distribución es histórica y no certifica la planificación actual de Jira:
 
 **Sprint 1 — Funcionalidades principales**
 
@@ -222,9 +223,17 @@ El trabajo se organiza en historias de usuario registradas en Jira y distribuida
 
 **Ampliaciones posteriores**
 
+- HU-09 (SMARLIST-10): Mejora visual y adaptación responsive.
+- HU-10 (SMARLIST-11): Consulta de productos en MySQL.
+- HU-11 (SMARLIST-12): Registro mediante la API.
+- HU-12 (SMARLIST-13): Edición; discrepancia entre título de edición y descripción PATCH registrada en documentación.
+- HU-13 (SMARLIST-14): Eliminación en MySQL.
+- HU-14 (SMARLIST-15): Integración Full Stack.
+- HU-15 (SMARLIST-19 y SMARLIST-22): Categorías en backend e interfaz.
+- HU-16 (SMARLIST-20): Filtrar y agrupar por categoría.
 - HU-17 (SMARLIST-21): Buscar productos por nombre.
 
-Cada historia cuenta con criterios de aceptación que permiten verificar su cumplimiento.
+Las historias y sus criterios están en [docs/stories](docs/stories/). Las divergencias Jira/specs, incluido HU-12, quedan explícitas en el registro de discrepancias.
 
 ## Desarrollo asistido por IA
 
@@ -239,15 +248,16 @@ El código generado por IA debe ser revisado y validado por los desarrolladores 
 ## Documentación
 
 - `AGENTS.md`: instrucciones de trabajo para Codex.
-- `docs/requirements.md`: requisitos funcionales y no funcionales.
+- [docs/requirements.md](docs/requirements.md): requisitos funcionales, no funcionales y matriz RF/HU/Jira/specs.
 - `docs/architecture.md`: estructura y decisiones arquitectónicas.
-- `docs/stories/`: especificaciones de historias de usuario.
+- [docs/stories/](docs/stories/): HU-01 a HU-17; las entregas iniciales se identifican como históricas.
+- [docs/documentation-traceability.md](docs/documentation-traceability.md): claves Jira, fuentes y discrepancias verificadas el 2026-10-14.
 
 ## Estado del proyecto
 
 **En desarrollo académico.**
 
-HU-01 permite agregar productos con nombre y cantidad y validar los datos. HU-02 muestra todos los registros con su nombre, cantidad y estado recibido (Pendiente o Comprado), y el mensaje "Tu lista de compras está vacía" cuando no hay productos. HU-03 permite marcar y desmarcar cada producto mediante un checkbox accesible; los comprados muestran su nombre tachado. HU-04 permite eliminar cada producto mediante su botón, conservando los demás registros. Al eliminar el último, aparece el mensaje de lista vacía. HU-05 permite editar nombre y cantidad, validar, guardar o cancelar sin alterar el identificador ni el estado de compra. HU-06 permite filtrar por Todos, Pendientes y Comprados, con indicador del filtro activo y mensajes sin resultados. Los filtros conservan los datos y el orden de registro. Todas estas operaciones actualizan la interfaz inmediatamente. HU-07 introdujo persistencia local, sustituida por MySQL en la integración HU-14; se conserva la recuperación tras recargar o reabrir. HU-08 muestra el total global de registros, pendientes y comprados, con actualización automática y sin depender del filtro. Las ocho historias del alcance inicial están implementadas; la revisión final del proyecto sigue correspondiendo al equipo. HU-17 (SMARLIST-21) agrega una búsqueda por nombre que filtra mientras se escribe, sin distinguir mayúsculas ni tildes, combinada con el filtro de estado, con mensaje sin coincidencias y opción para limpiar. La búsqueda es estado de la interfaz: no se envía a la API ni se conserva al recargar. Artefactos SDD: `specs/004-busqueda-productos/`.
+HU-01 permite agregar productos con nombre y cantidad y validar los datos. HU-02 muestra todos los registros con su nombre, cantidad y estado recibido (Pendiente o Comprado), y el mensaje "Tu lista de compras está vacía" cuando no hay productos. HU-03 permite marcar y desmarcar cada producto mediante un checkbox accesible; los comprados muestran su nombre tachado. HU-04 permite eliminar cada producto mediante su botón, conservando los demás registros. Al eliminar el último, aparece el mensaje de lista vacía. HU-05 permite editar nombre y cantidad, validar, guardar o cancelar sin alterar el identificador ni el estado de compra. HU-06 permite filtrar por Todos, Pendientes y Comprados, con indicador del filtro activo y mensajes sin resultados. Los filtros conservan los datos y el orden relativo recibido; el orden de registro tras recargar no está garantizado por el SQL de esta rama (discrepancia D-05). Todas estas operaciones actualizan la interfaz inmediatamente. HU-07 introdujo persistencia local, sustituida por MySQL en la integración HU-14; se conserva la recuperación tras recargar o reabrir. HU-08 muestra el total global de registros, pendientes y comprados, con actualización automática y sin depender del filtro. Las ocho historias del alcance inicial están implementadas; la revisión final del proyecto sigue correspondiendo al equipo. HU-17 (SMARLIST-21) agrega una búsqueda por nombre que filtra mientras se escribe, sin distinguir mayúsculas ni tildes, combinada con el filtro de estado, con mensaje sin coincidencias y opción para limpiar. La búsqueda es estado de la interfaz: no se envía a la API ni se conserva al recargar. Artefactos SDD: `specs/004-busqueda-productos/`.
 
 Las funcionalidades se incorporan progresivamente mediante historias de usuario y control de versiones en GitHub.
 
@@ -333,7 +343,7 @@ npm run test:watch
 
 `src/config/database.js` exporta `getPool`, `checkDatabaseConnection` y `closePool`. Importarlo no crea conexiones. Configurar MySQL local con `DB_HOST=localhost`, `DB_PORT=3306`, `DB_NAME=smartlist_db` y el usuario/contraseña exclusivamente en `.env`. El usuario `root` se utiliza solo para esta práctica local; para otro entorno conviene un usuario con privilegios mínimos.
 
-### HU-09: consultar productos en MySQL
+### HU-10 / SMARLIST-11: consultar productos en MySQL
 
 Requiere MySQL >= 8.0.16 para restricciones CHECK efectivas. Desde `backend/`:
 
@@ -344,19 +354,19 @@ npm run test:mysql
 npm start
 ```
 
-`db:init` inspecciona versión, existencia y estructura antes de crear únicamente `smartlist_db` y `products` faltantes. Migra únicamente las estructuras anteriores reconocidas (category y creation_order); ante incompatibilidad se detiene para revisión. No ejecuta DDL durante importación, inicio del servidor o solicitudes. `database/schema.sql` contiene los cinco atributos públicos y la secuencia interna de registro.
+`db:init` inspecciona versión, existencia y estructura antes de crear únicamente `smartlist_db` y `products` faltantes. Migra tablas anteriores compatibles sin category mediante la migración HU-15; ante otra incompatibilidad se detiene para revisión. No ejecuta DDL durante importación, inicio del servidor o solicitudes. `database/schema.sql` contiene los cinco atributos vigentes, incluida category desde HU-15.
 
-`GET http://localhost:3000/api/products` devuelve HTTP 200 y un arreglo JSON directo, ordenado por `creation_order ASC`, la secuencia persistente generada por MySQL. Una lista vacía devuelve `[]`. Cada registro contiene `id`, `name`, `quantity`, `category` y `purchased` booleano; quantity no expande registros. La consulta conserva datos y nombres repetidos. MySQL no disponible devuelve HTTP 503 con `{"error":"Servicio temporalmente no disponible"}`; errores inesperados conservan la respuesta 500 genérica existente. `/health` sigue siendo independiente de MySQL.
+`GET http://localhost:3000/api/products` devuelve HTTP 200 y un arreglo JSON directo, ordenado por ID ascendente con comparación binaria. Una lista vacía devuelve `[]`. Cada registro contiene `id`, `name`, `quantity`, `purchased` booleano y `category`; quantity no expande registros. La consulta conserva datos y nombres repetidos. MySQL no disponible devuelve HTTP 503 con `{"error":"Servicio temporalmente no disponible"}`; errores inesperados conservan la respuesta 500 genérica existente. `/health` sigue siendo independiente de MySQL.
 
 `npm test` no necesita MySQL real; las suites reales se omiten por defecto. `npm run test:mysql` las activa explícitamente y requiere `smartlist_db` local preparada. Se ejecutan secuencialmente para proteger las comprobaciones de colección inicial/final. Crean fixtures identificables y limpian únicamente sus IDs; verifican consulta, registro, edición, eliminación, orden, restricciones y persistencia. No utilizar las suites reales en producción. PATCH y la integración están implementados; no hay importación desde localStorage. Las pruebas comparan datos y esquema antes y después y no eliminan registros preexistentes del usuario.
 
-Artefactos y evidencia de HU-09: `specs/001-consultar-productos/`. La clave Jira definitiva todavía no está confirmada.
+La consulta corresponde a HU-10 / SMARLIST-11. Su [especificación](specs/001-consultar-productos/spec.md) conserva el rótulo histórico HU-09 y su clave pendiente. Jira identifica HU-09 como mejora visual (SMARLIST-10). Véase [D-01 y las fuentes verificadas](docs/documentation-traceability.md).
 
 ### HU-11 / SMARLIST-12: registrar productos
 
-`POST http://localhost:3000/api/products` recibe un objeto JSON con únicamente `name` y `quantity`. Ejemplo: `{"name":"  Arroz  ","quantity":2}`. Responde HTTP 201 con `{"id":"UUID generado","name":"Arroz","quantity":2,"purchased":false}` y el producto queda disponible en GET. ID y estado se generan exclusivamente en el servidor; nombres repetidos producen registros independientes.
+`POST http://localhost:3000/api/products` recibe un objeto JSON con `name` y `quantity` obligatorios y `category` opcional desde HU-15. Ejemplo: `{"name":"  Arroz  ","quantity":2}`. Responde HTTP 201 con `{"id":"UUID generado","name":"Arroz","quantity":2,"purchased":false,"category":"Otros"}` y el producto queda disponible en GET. ID y estado se generan exclusivamente en el servidor; nombres repetidos producen registros independientes.
 
-El nombre debe ser string válido, no vacío después de trim y de hasta 150 caracteres Unicode. La cantidad debe ser number entero entre 1 y 2147483647, sin convertir strings. Cuerpo incorrecto, datos inválidos, campos adicionales o intentos de establecer id/purchased reciben 400 con `{"error":{"message":"mensaje público"}}`, antes de insertar. JSON malformado recibe el mensaje genérico `JSON inválido.`. Errores de MySQL mantienen los contratos seguros 503/500 de HU-09. Se reutilizan esquema y pool existentes, sin DDL ni dependencias nuevas.
+El nombre debe ser string válido, no vacío después de trim y de hasta 150 caracteres Unicode. La cantidad debe ser number entero entre 1 y 2147483647, sin convertir strings. Cuerpo incorrecto, datos inválidos, campos adicionales o intentos de establecer id/purchased reciben 400 con `{"error":{"message":"mensaje público"}}`, antes de insertar. JSON malformado recibe el mensaje genérico `JSON inválido.`. Errores de MySQL mantienen los contratos seguros 503/500 de la consulta HU-10. Se reutilizan esquema y pool existentes, sin DDL ni dependencias nuevas.
 
 Para comprobar manualmente, enviar POST con Content-Type application/json, recuperar el ID mediante GET y probar quantity string o nombre vacío:400. Los registros manuales son persistentes; HU-13 ofrece DELETE por UUID para retirar exclusivamente los fixtures propios. Las pruebas automatizadas limpian solo sus propios datos. Un reintento de POST puede crear otro registro: no se implementa deduplicación de solicitudes.
 
@@ -364,11 +374,13 @@ Artefactos SDD y evidencia: `specs/002-registro-productos/`. Mantenimiento separ
 
 ### HU-12 / SMARLIST-13: editar productos
 
-`PUT http://localhost:3000/api/products/:id` exige un objeto JSON completo con únicamente `name` y `quantity`, usando las mismas validaciones de POST. Ejemplo: `{"name":"  Arroz integral  ","quantity":3}`. Devuelve200 con el nombre normalizado, cantidad actualizada y los valores originales de `id` y `purchased`, también si no cambian los datos. No genera UUID ni crea productos inexistentes.
+**Procedencia:** esta sección describe PUT según la especificación local y HU-14. La descripción actual de SMARLIST-13 exige PATCH de estado, pese al título de edición. La discrepancia permanece pendiente de reconciliación en Jira; véase [D-02](docs/documentation-traceability.md).
 
-El ID es un string bien formado de1..36 unidades UTF-16, no vacío y sin espacios externos; no se normaliza ni se restringe a UUID para conservar compatibilidad con HU-09. ID/cuerpo inválidos:400; ID válido inexistente con cuerpo válido:404 y `{"error":{"message":"Producto no encontrado."}}`. No se admite id/purchased o campos adicionales en el cuerpo. Infraestructura503/500 mantiene contratos existentes.
+`PUT http://localhost:3000/api/products/:id` exige un objeto JSON completo con `name` y `quantity`, más `category` opcional desde HU-15, usando las mismas validaciones de POST. Ejemplo: `{"name":"  Arroz integral  ","quantity":3}`. Devuelve200 con el nombre normalizado, cantidad actualizada y los valores originales de `id` y `purchased`, también si no cambian los datos. No genera UUID ni crea productos inexistentes.
 
-La edición usa una conexión y transacción InnoDB: consulta por ID con FOR UPDATE y UPDATE parametrizado únicamente de nombre/cantidad. La lectura determina existencia; no se interpreta cero cambios como404. Se preserva el estado vigente de compra y no se alteran otros registros. El esquema existente, sin triggers transformadores, permite devolver los datos confirmados sin una tercera consulta.
+El ID es un string bien formado de1..36 unidades UTF-16, no vacío y sin espacios externos; no se normaliza ni se restringe a UUID para conservar compatibilidad con la consulta HU-10. ID/cuerpo inválidos:400; ID válido inexistente con cuerpo válido:404 y `{"error":{"message":"Producto no encontrado."}}`. No se admite id/purchased o campos adicionales en el cuerpo. Infraestructura503/500 mantiene contratos existentes.
+
+La edición usa una conexión y transacción InnoDB: consulta por ID con FOR UPDATE y UPDATE parametrizado de nombre/cantidad y, desde HU-15, categoría opcional. La lectura determina existencia; no se interpreta cero cambios como404. Se preserva el estado vigente de compra y no se alteran otros registros. El esquema existente, sin triggers transformadores, permite devolver los datos confirmados sin una tercera consulta.
 
 Para comprobar manualmente, registrar un producto, conservar su ID, enviar PUT, recuperarlo por GET y repetir los mismos valores:200. Probar cantidad string:400 y un ID válido inexistente:404. Las pruebas reales verifican ambos estados, reinicio y limpieza exclusiva de fixtures; no modificar registros ajenos. Artefactos y resultados en `specs/003-edicion-productos/`. Frontend y localStorage permanecen intactos.
 
@@ -394,11 +406,11 @@ En la interfaz (SMARLIST-22), el formulario de registro y la edición de cada pr
 
 ### HU-16 / SMARLIST-20: filtrar y agrupar por categoría
 
-Junto a los filtros de estado hay un selector "Categoría" ("Todas" y las 8 categorías) que se combina con el estado y con la búsqueda por nombre. Si la categoría no tiene coincidencias se muestra "No hay productos en la categoría X" (o "pendientes"/"comprados" según el filtro de estado). El botón "Agrupar por categoría" alterna entre la lista normal y una vista con una sección por categoría, en el orden fijo, con encabezado y la cantidad de productos pendientes de esa categoría en toda la lista; las categorías sin productos visibles no se muestran. El resumen sigue siendo global. Filtros y agrupación no se guardan al recargar. Artefactos: `specs/008-filtrar-agrupar-categoria/`. Artefactos y resultados: `specs/006-categorias-productos/`.
+Junto a los filtros de estado hay un selector "Categoría" ("Todas" y las 8 categorías) que se combina con el estado y con la búsqueda por nombre. Si la categoría no tiene coincidencias se muestra "No hay productos en la categoría X" (o "pendientes"/"comprados" según el filtro de estado). El botón "Agrupar por categoría" alterna entre la lista normal y una vista con una sección por categoría, en el orden fijo, con encabezado y la cantidad de productos pendientes de esa categoría en toda la lista; las categorías sin productos visibles no se muestran. El resumen sigue siendo global. Filtros y agrupación no se guardan al recargar. Artefactos de filtros/agrupación: [008-filtrar-agrupar-categoria](specs/008-filtrar-agrupar-categoria/spec.md). Los de categorías son distintos: [006-categorias-productos](specs/006-categorias-productos/spec.md).
 
 ### Spec Kit con Codex
 
-Spec Kit 1.0.13 se inicializó oficialmente en la raíz, con scripts `sh` e integración Codex en `.agents/skills/`. `.specify/` contiene plantillas, manifiestos, scripts y el flujo instalado. La Constitution v1.0.0 está aprobada y ratificada el 2026-10-13. HU-09 conserva especificación, aclaraciones, plan, investigación, modelo, contrato, tareas y validación en su directorio. El ejecutable instalado está en `C:/Users/judri/.local/bin/specify.exe`; si `specify` no se reconoce, añadir ese directorio al PATH local.
+Spec Kit 1.0.13 se inicializó oficialmente en la raíz, con scripts `sh` e integración Codex en `.agents/skills/`. `.specify/` contiene plantillas, manifiestos, scripts y el flujo instalado. La Constitution v1.0.0 está aprobada y ratificada el 2026-10-13. La entrega original de consulta (HU-10 en Jira, HU-09 en specs) conserva especificación, aclaraciones, plan, investigación, modelo, contrato, tareas y validación en su directorio. El ejecutable instalado está en `C:/Users/judri/.local/bin/specify.exe`; si `specify` no se reconoce, añadir ese directorio al PATH local.
 
 Para usar las nuevas habilidades, abrir o recargar Codex en este repositorio. Se invocan con sus nombres `$speckit-*`, no como comandos npm. Los scripts `sh` necesitan Bash; en Windows está disponible Git Bash. Revisar cada etapa antes de continuar:
 
@@ -412,7 +424,7 @@ Para usar las nuevas habilidades, abrir o recargar Codex en este repositorio. Se
 | Analyze | `$speckit-analyze` | Informe de consistencia de especificación, plan y tareas |
 | Implement | `$speckit-implement` | Código y pruebas según las tareas aprobadas |
 
-Las especificaciones se almacenan en el repositorio. La habilidad Specify puede crear una rama; deberá autorizarse expresamente antes de usarla, conforme a AGENTS.md. No ejecutar etapas en cadena sin autorización ni commits automáticos. Las instrucciones actuales del usuario prevalecen sobre las automatizaciones de las habilidades. HU-09 recibió autorización general para las fases restantes sin cambios de rama.
+Las especificaciones se almacenan en el repositorio. La habilidad Specify puede crear una rama; deberá autorizarse expresamente antes de usarla, conforme a AGENTS.md. No ejecutar etapas en cadena sin autorización ni commits automáticos. Las instrucciones actuales del usuario prevalecen sobre las automatizaciones de las habilidades. La entrega original de consulta recibió autorización general para las fases restantes sin cambios de rama.
 
 Las nuevas historias deben respetar los siete principios de `.specify/memory/constitution.md` y seguir Specify → Clarify → Plan → Tasks → Analyze → Implement con las aprobaciones aplicables. La integración frontend requiere su propia historia autorizada.
 
