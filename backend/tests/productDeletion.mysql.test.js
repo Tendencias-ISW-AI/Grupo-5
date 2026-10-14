@@ -53,7 +53,7 @@ describe.skipIf(process.env.RUN_MYSQL_TESTS !== '1')('SMARLIST-14 HU-13 MySQL y 
     if (process.env.DB_NAME !== 'smartlist_db' || !['localhost', '127.0.0.1', '::1'].includes(process.env.DB_HOST ?? 'localhost')) {
       throw new Error('Las pruebas reales requieren smartlist_db local.');
     }
-    const [definition] = await getPool().execute('SHOW CREATE TABLE products'); schema = definition[0]['Create Table'];
+    const [definition] = await getPool().execute('SHOW CREATE TABLE products'); schema = definition[0]['Create Table'].replace(/ AUTO_INCREMENT=\d+/g, '');
     server = app.listen(0, '127.0.0.1'); await once(server, 'listening'); origin = `http://127.0.0.1:${server.address().port}`;
     baseline = await readProducts();
     do { prefix = `HU13-${randomUUID()}-`; } while (baseline.some(product => product.name.startsWith(prefix)));
@@ -74,7 +74,7 @@ describe.skipIf(process.env.RUN_MYSQL_TESTS !== '1')('SMARLIST-14 HU-13 MySQL y 
         // CP19: limpieza propia completa, atributos previos y tabla/esquema conservados.
         expect(await readProducts()).toEqual(baseline);
         const [definition] = await getPool().execute('SHOW CREATE TABLE products');
-        expect(definition[0]['Create Table']).toBe(schema);
+        expect(definition[0]['Create Table'].replace(/ AUTO_INCREMENT=\d+/g, '')).toBe(schema);
       }
     } finally {
       if (server) await new Promise(resolve => server.close(resolve)); await closePool();

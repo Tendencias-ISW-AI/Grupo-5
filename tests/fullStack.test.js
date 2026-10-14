@@ -31,6 +31,22 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); vi.restoreAllMocks(); vi.unstubAllGlobals(); localStorage.clear(); });
 
 describe('SMARLIST-15 integración asíncrona', () => {
+  it('respeta el orden del GET, agrega al final y lo conserva al remontar la aplicación', async () => {
+    const names = ['Leche', 'Queso', 'Pan'];
+    server.seed(names.map((name, index) => ({ ...fixture, id: String(9 - index), name })));
+    const visibleNames = () => [...container.querySelectorAll('.product-name')].map(node => node.textContent);
+    await render();
+    expect(visibleNames()).toEqual(names);
+    await input('#product-name', 'Jabón');
+    await input('#product-quantity', '1');
+    await submit();
+    expect(visibleNames()).toEqual([...names, 'Jabón']);
+    await act(async () => root.unmount());
+    root = createRoot(container);
+    await render();
+    expect(visibleNames()).toEqual([...names, 'Jabón']);
+  });
+
   it('carga no representa lista vacía ni permite escrituras', async () => {
     const loading = deferred(); server.fetch.mockReturnValueOnce(loading.promise);
     const current = await hook();
