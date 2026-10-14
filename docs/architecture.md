@@ -54,14 +54,19 @@ smartlist/
 │   │   ├── ShoppingList.jsx
 │   │   ├── ShoppingItem.jsx
 │   │   ├── ShoppingSummary.jsx
-│   │   └── ShoppingFilters.jsx
+│   │   ├── ShoppingFilters.jsx
+│   │   └── ProductSearch.jsx
 │   ├── hooks/
 │   │   └── useShoppingList.js
+│   ├── utils/
+│   │   ├── shoppingListStorage.js
+│   │   └── productFilters.js
 │   ├── App.jsx
 │   ├── App.css
 │   └── main.jsx
 └── tests/
-    └── shoppingList.test.js
+    ├── shoppingList.test.js
+    └── productSearch.test.js
 ```
 
 Los componentes y archivos se crearán o completarán según las necesidades de cada historia de usuario.
@@ -127,6 +132,18 @@ Responsabilidades:
 - Identificar visualmente el filtro activo.
 
 Implementado en HU-06.
+
+### 5.5.1. ProductSearch.jsx
+
+Componente de presentación de la búsqueda por nombre (HU-17).
+
+Responsabilidades:
+
+- Mostrar el campo controlado "Buscar producto" dentro de un landmark `role="search"`.
+- Notificar cada cambio del texto al componente superior.
+- Ofrecer "Limpiar búsqueda", deshabilitado sin texto, que vacía el campo y le devuelve el foco.
+
+No filtra ni conoce los productos.
 
 ### 5.6. ShoppingSummary.jsx
 
@@ -272,6 +289,8 @@ Para HU-01, Vitest utiliza jsdom (dependencia de desarrollo) y las APIs `createR
 ## 12. Decisiones arquitectónicas
 
 HU-08 calcula los indicadores durante el render de `App` desde la colección completa `items`: longitud total y conteos por `purchased === false` o `purchased === true`. `quantity` no interviene. `ShoppingSummary` recibe los valores derivados, sin estado adicional, efectos o acceso al almacenamiento. El resumen es global e independiente de `visibleItems`; agregar, eliminar o alternar estado actualiza los indicadores, mientras editar nombre o cantidad no los altera. Los contadores no se almacenan ni cambian las políticas de HU-07.
+
+HU-17 (SMARLIST-21) agrega `searchQuery` en `App`, junto a `activeFilter`, sin persistirlo ni modificar `useShoppingList`. `src/utils/productFilters.js` concentra el filtrado en funciones puras: `normalizeText` (NFD sin marcas diacríticas, minúsculas, espacios reducidos y recortados), `matchesStatus`, `matchesSearch` (coincidencia parcial literal con `includes`) y `filterProducts(items, { status, query })`, que exige todos los criterios y conserva orden y referencias. El filtrado de estado de HU-06 se trasladó a `matchesStatus` con las mismas condiciones. Para el futuro filtro de categoría (SMARLIST-20) basta con añadir `category` a los criterios y su predicado. Con productos registrados y una búsqueda sin coincidencias, el mensaje de búsqueda prevalece sobre los mensajes del filtro; con la colección vacía se conserva el mensaje original.
 
 HU-06 mantiene `activeFilter` en `App`, inicialmente `all`, con opciones `pending` y `purchased`. La colección visible se deriva mediante `filter` en cada render, sin otro estado de productos ni cambios en el hook. `ShoppingFilters` comunica la selección con botones y `aria-pressed`; `ShoppingList` recibe un mensaje vacío configurable. Si la colección original está vacía se conserva el mensaje original; si contiene registros sin coincidencias se utiliza el mensaje del filtro. Ocultar un producto desmonta su formulario y descarta cualquier borrador sin guardar.
 
