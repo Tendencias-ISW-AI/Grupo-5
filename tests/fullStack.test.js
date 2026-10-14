@@ -7,7 +7,7 @@ import { createProductsServer, jsonResponse } from './helpers/productsServer.js'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 let container, root, server;
-const fixture = { id: '00000000-0000-4000-8000-000000000099', name: 'Arroz', quantity: 2, purchased: false };
+const fixture = { id: '00000000-0000-4000-8000-000000000099', name: 'Arroz', quantity: 2, purchased: false, category: 'Otros' };
 function deferred() { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; }
 async function render(component = createElement(App)) { await act(async () => root.render(component)); }
 async function hook(strict = false) {

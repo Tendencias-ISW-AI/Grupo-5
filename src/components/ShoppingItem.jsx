@@ -1,11 +1,13 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { validateProduct } from '../hooks/useShoppingList.js';
+import CategorySelect from './CategorySelect.jsx';
 
 export default function ShoppingItem({ item, onTogglePurchased, onRemoveProduct, onUpdateProduct, disabled = false }) {
   const fieldId = useId();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState('');
   const [quantity, setQuantity] = useState('');
+  const [category, setCategory] = useState('');
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const submitting = useRef(false);
@@ -15,6 +17,7 @@ export default function ShoppingItem({ item, onTogglePurchased, onRemoveProduct,
   function startEditing() {
     setName(item.name);
     setQuantity(String(item.quantity));
+    setCategory(item.category);
     setErrors({});
     setEditing(true);
   }
@@ -23,20 +26,21 @@ export default function ShoppingItem({ item, onTogglePurchased, onRemoveProduct,
     setEditing(false);
     setName('');
     setQuantity('');
+    setCategory('');
     setErrors({});
   }
 
   async function saveChanges(event) {
     event.preventDefault();
     if (submitting.current || disabled) return;
-    const validated = validateProduct(name, quantity);
+    const validated = validateProduct(name, quantity, category);
     if (Object.keys(validated.errors).length > 0) {
       setErrors(validated.errors);
       return;
     }
     submitting.current = true;
     setSaving(true);
-    const result = await onUpdateProduct(item.id, { name: validated.name, quantity: validated.quantity });
+    const result = await onUpdateProduct(item.id, { name: validated.name, quantity: validated.quantity, category: validated.category });
     submitting.current = false;
     if (!mounted.current) return;
     setSaving(false);
@@ -68,6 +72,10 @@ export default function ShoppingItem({ item, onTogglePurchased, onRemoveProduct,
             />
             {errors.quantity && <p className="error" id={`${fieldId}-quantity-error`} role="alert">{errors.quantity}</p>}
           </div>
+          <CategorySelect
+            id={`${fieldId}-category`} name="category" value={category} onChange={setCategory}
+            disabled={disabled || saving} error={errors.category}
+          />
           {errors.product && <p className="error" role="alert">{errors.product}</p>}
           <div className="edit-actions">
             <button type="submit" disabled={disabled || saving}>Guardar</button>
@@ -91,6 +99,7 @@ export default function ShoppingItem({ item, onTogglePurchased, onRemoveProduct,
       <span className={`product-name${item.purchased ? ' product-name-purchased' : ''}`}>
         {item.name}
       </span>
+      <span className="product-category">{item.category}</span>
       <span>Cantidad: {item.quantity}</span>
       <span className="product-status">{item.purchased ? 'Comprado' : 'Pendiente'}</span>
       <button type="button" className="edit-button" aria-label={`Editar ${item.name}`} onClick={startEditing} disabled={disabled}>
