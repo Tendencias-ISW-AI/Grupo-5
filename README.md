@@ -241,3 +241,49 @@ Las funcionalidades se incorporan progresivamente mediante historias de usuario 
 SmartList es una aplicación educativa. No contempla autenticación, colaboración entre usuarios, compras en línea, pagos ni integración con servicios externos.
 
 La información se almacena localmente en el navegador y origen utilizados, sin sincronización entre dispositivos. Si el almacenamiento no está disponible, la aplicación continúa en memoria.
+
+## Ampliación: backend y Spec-Driven Development
+
+El frontend conserva su estructura en la raíz, sus comandos npm y la persistencia con localStorage. La nueva base técnica vive en `backend/` con un `package.json` y un lockfile independientes. Aún no existen endpoints de productos, tablas MySQL ni integración de React con el servidor. Los requisitos originales de HU-01 a HU-08 documentan el alcance frontend anterior; esta ampliación no los modifica.
+
+### Instalar y ejecutar el backend
+
+Desde la raíz:
+
+```sh
+cd backend
+npm ci
+```
+
+Copiar `.env.example` a `.env` y ajustar la configuración local. No publicar `.env` ni contraseñas. Express puede iniciar sin MySQL. CORS permite el origen definido por `FRONTEND_ORIGIN`, inicialmente `http://localhost:5173`; si Vite utiliza otro puerto, ajustar ese valor.
+
+```sh
+npm run dev
+npm start
+npm test
+npm run test:watch
+```
+
+`dev` usa el modo watch nativo de Node. `start` ejecuta el servidor sin watch. El puerto predeterminado es 3000. Comprobar `GET http://localhost:3000/health`: debe responder 200 con `{"status":"ok"}`. No consulta MySQL. Las pruebas utilizan Vitest y Supertest y no requieren una base de datos real.
+
+`src/config/database.js` exporta `getPool`, `checkDatabaseConnection` y `closePool`. Importarlo no crea conexiones. La comprobación es explícita y queda pendiente de contar con MySQL y las variables `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD` y `DB_NAME`. No se ejecutó SQL ni se creó el esquema; `database/schema.sql` contiene solo comentarios.
+
+### Spec Kit con Codex
+
+Spec Kit 1.0.13 se inicializó oficialmente en la raíz, con scripts `sh` e integración Codex en `.agents/skills/`. `.specify/` contiene plantillas, manifiestos, scripts y el flujo instalado. La Constitution existente es una plantilla sin completar: no se ejecutó ninguna fase funcional. El ejecutable instalado está en `C:/Users/judri/.local/bin/specify.exe`; si `specify` no se reconoce, añadir ese directorio al PATH local.
+
+Para usar las nuevas habilidades, abrir o recargar Codex en este repositorio. Se invocan con sus nombres `$speckit-*`, no como comandos npm. Los scripts `sh` necesitan Bash; en Windows está disponible Git Bash. Revisar cada etapa antes de continuar:
+
+| Etapa | Habilidad | Resultado esperado |
+|---|---|---|
+| Constitution | `$speckit-constitution` | Principios acordados en `.specify/memory/constitution.md` |
+| Specify | `$speckit-specify` | Especificación de una funcionalidad en `specs/<funcionalidad>/spec.md` |
+| Clarify | `$speckit-clarify` | Preguntas y respuestas incorporadas a la especificación |
+| Plan | `$speckit-plan` | `plan.md` y, según alcance, investigación, modelo, contratos y guía de validación |
+| Tasks | `$speckit-tasks` | `tasks.md` con tareas vinculadas a la especificación |
+| Analyze | `$speckit-analyze` | Informe de consistencia de especificación, plan y tareas |
+| Implement | `$speckit-implement` | Código y pruebas según las tareas aprobadas |
+
+Las futuras especificaciones se almacenarán en el repositorio. La habilidad Specify puede crear una rama; deberá autorizarse expresamente antes de usarla, conforme a AGENTS.md. No ejecutar etapas en cadena ni commits automáticos. Las instrucciones actuales del usuario prevalecen sobre las automatizaciones de las habilidades.
+
+Para comenzar Constitution, solicitar principios para Node.js/Express/MySQL, arquitectura Routes → Controllers → Services → Repositories, JavaScript/ES Modules, SQL parametrizado, credenciales por entorno, pruebas, preservación del frontend y revisión individual de fases. Aclarar primero que el nuevo alcance autoriza backend mientras los requisitos originales describen el frontend. Ese paso se realizará después de revisar esta configuración.

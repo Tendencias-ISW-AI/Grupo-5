@@ -1,0 +1,2 @@
+-- SmartList: el esquema MySQL se definirá en una futura especificación SDD.
+-- Esta configuración inicial no crea tablas ni ejecuta SQL.
