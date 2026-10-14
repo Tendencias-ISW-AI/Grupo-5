@@ -327,7 +327,7 @@ POST y PUT aceptan `category` opcional. POST sin categoría crea el producto en 
 
 La columna es `category VARCHAR(30) NOT NULL DEFAULT 'Otros'`. Para bases existentes, ejecutar `npm run db:init`: si la tabla `products` coincide con la estructura anterior, se agrega la columna con `database/add-product-category.sql` y todos los productos existentes quedan en `Otros` (la salida indica `"categoryAdded":true`). Repetir la inicialización no ejecuta DDL.
 
-El cliente `src/services/productsApi.js` acepta `category` como quinto atributo para seguir validando las respuestas de la API. El selector de categoría en el formulario y su visualización en la lista quedan pendientes en el frontend. Artefactos y resultados: `specs/006-categorias-productos/`.
+En la interfaz (SMARLIST-22), el formulario de registro y la edición de cada producto tienen un selector "Categoría" (registro con "Otros" por defecto; edición precargada con la categoría actual) y cada producto de la lista muestra su categoría. El cliente `src/services/productsApi.js` exige una categoría válida en cada producto recibido. La lista de categorías del frontend (`src/utils/productCategories.js`) replica la del backend y una prueba verifica que coinciden. Artefactos: `specs/007-categorias-interfaz/`. Artefactos y resultados: `specs/006-categorias-productos/`.
 
 ### Spec Kit con Codex
 

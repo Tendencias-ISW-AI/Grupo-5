@@ -73,6 +73,7 @@ input:disabled {
 
 
 input:not([type="checkbox"]),
+select,
 button {
   font: inherit;
   padding: 0.65rem;
@@ -80,8 +81,14 @@ button {
 }
 
 
-input:not([type="checkbox"]) {
+input:not([type="checkbox"]),
+select {
   border: 1px solid #9ca3af;
+}
+
+
+select {
+  background: white;
 }
 
 
@@ -144,6 +151,15 @@ input[aria-invalid="true"] {
 .product-name-purchased {
   text-decoration:line-through;
   color:#6b7280;
+}
+
+
+.product-category {
+  padding:0.25rem 0.6rem;
+  border-radius:999px;
+  font-size:0.85rem;
+  background:#e0e7ff;
+  color:#3730a3;
 }
 
 

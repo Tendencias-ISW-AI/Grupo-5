@@ -4,8 +4,11 @@ export function jsonResponse(body, status = 200) {
   return { status, ok: status >= 200 && status < 300, json: vi.fn(async () => structuredClone(body)) };
 }
 
+// Como la API real (SMARLIST-19): todo producto tiene category y la ausente se registra como Otros.
+const withCategory = item => ({ ...item, category: item.category ?? 'Otros' });
+
 export function createProductsServer(initial = []) {
-  let items = structuredClone(initial);
+  let items = structuredClone(initial).map(withCategory);
   let counter = 0;
   const fetch = vi.fn(async (url, options = {}) => {
     if (options.signal?.aborted) throw new DOMException('Cancelado', 'AbortError');
@@ -16,7 +19,7 @@ export function createProductsServer(initial = []) {
     const id = encodedId ? decodeURIComponent(encodedId) : undefined;
     if (method === 'GET') return jsonResponse(items);
     if (method === 'POST') {
-      const item = { id: `00000000-0000-4000-8000-${String(++counter).padStart(12, '0')}`, ...data, purchased: false };
+      const item = withCategory({ id: `00000000-0000-4000-8000-${String(++counter).padStart(12, '0')}`, ...data, purchased: false });
       items = [...items, item]; return jsonResponse(item, 201);
     }
     const index = items.findIndex(item => item.id === id);
@@ -31,5 +34,5 @@ export function createProductsServer(initial = []) {
     }
     return jsonResponse({ error: { message: 'Ruta no encontrada.' } }, 404);
   });
-  return { fetch, seed: data => { items = structuredClone(data); }, items: () => structuredClone(items) };
+  return { fetch, seed: data => { items = structuredClone(data).map(withCategory); }, items: () => structuredClone(items) };
 }

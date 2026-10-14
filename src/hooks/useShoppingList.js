@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import * as productsApi from '../services/productsApi.js';
+import { DEFAULT_PRODUCT_CATEGORY, isValidProductCategory } from '../utils/productCategories.js';
 
-export function validateProduct(name, quantity) {
+export function validateProduct(name, quantity, category) {
   const errors = {};
   const normalizedName = typeof name === 'string' ? name.trim() : '';
   const hasQuantity = typeof quantity === 'number' ||
@@ -11,7 +12,8 @@ export function validateProduct(name, quantity) {
   else if (!normalizedName.isWellFormed() || Array.from(normalizedName).length > 150) errors.name = 'El nombre debe tener hasta 150 caracteres válidos.';
   if (!Number.isInteger(normalizedQuantity) || normalizedQuantity <= 0) errors.quantity = 'Ingresa una cantidad entera mayor que cero.';
   else if (normalizedQuantity > 2147483647) errors.quantity = 'La cantidad máxima es 2147483647.';
-  return { errors, name: normalizedName, quantity: normalizedQuantity };
+  if (category !== undefined && !isValidProductCategory(category)) errors.category = 'Elige una categoría válida.';
+  return { errors, name: normalizedName, quantity: normalizedQuantity, category };
 }
 
 export default function useShoppingList() {
@@ -76,11 +78,11 @@ export default function useShoppingList() {
     return item;
   }
 
-  async function addProduct(name, quantity) {
-    const validated = validateProduct(name, quantity);
+  async function addProduct(name, quantity, category = DEFAULT_PRODUCT_CATEGORY) {
+    const validated = validateProduct(name, quantity, category);
     if (Object.keys(validated.errors).length) return { success: false, errors: validated.errors };
     return mutate(async collection => {
-      const product = await productsApi.createProduct({ name: validated.name, quantity: validated.quantity });
+      const product = await productsApi.createProduct({ name: validated.name, quantity: validated.quantity, category: validated.category });
       if (collection.some(item => item.id === product.id)) throw new Error('El servidor devolvió un identificador repetido.');
       return [...collection, product];
     }, false);
@@ -103,11 +105,13 @@ export default function useShoppingList() {
   }
 
   async function updateProduct(id, data) {
-    const validated = validateProduct(data?.name, data?.quantity);
+    const validated = validateProduct(data?.name, data?.quantity, data?.category);
     if (Object.keys(validated.errors).length) return { success: false, errors: validated.errors };
+    const changes = { name: validated.name, quantity: validated.quantity };
+    if (validated.category !== undefined) changes.category = validated.category;
     return mutate(async collection => {
       findProduct(collection, id);
-      const product = await productsApi.updateProduct(id, { name: validated.name, quantity: validated.quantity });
+      const product = await productsApi.updateProduct(id, changes);
       return collection.map(item => item.id === id ? product : item);
     }, false);
   }

@@ -127,17 +127,20 @@ describe('HU-02: visualización de productos', () => {
       id: 'arroz',
       name: 'Arroz',
       quantity: 2,
-      purchased: false
+      purchased: false,
+      category: 'Otros'
     }, {
       id: 'pan',
       name: 'Pan',
       quantity: 3,
-      purchased: true
+      purchased: true,
+      category: 'Otros'
     }, {
       id: 'leche',
       name: 'Leche',
       quantity: 1,
-      purchased: false
+      purchased: false,
+      category: 'Otros'
     }];
     await render(createElement(ShoppingList, {
       items
@@ -503,7 +506,8 @@ describe('HU-05: edición local', () => {
       id,
       name: 'Pan',
       quantity: 3,
-      purchased: true
+      purchased: true,
+      category: 'Otros'
     });
   });
   it('CP-16: ID inexistente no modifica la colección', async () => {
@@ -708,6 +712,8 @@ describe('HU-07 adaptada: persistencia API sin migración local', () => {
     quantity: 3,
     purchased: true
   }];
+  // La API (SMARLIST-19) devuelve category; localStorage histórico conserva el modelo de cuatro atributos.
+  const apiFixtures = fixtures.map(item => ({ ...item, category: 'Otros' }));
   function storedItems() {
     return server.items();
   }
@@ -724,7 +730,8 @@ describe('HU-07 adaptada: persistencia API sin migración local', () => {
       id: expect.any(String),
       name: 'Arroz',
       quantity: 2,
-      purchased: false
+      purchased: false,
+      category: 'Otros'
     }]);
     await remount();
     expect(container.querySelector('.product-name').textContent.trim()).toBe('Arroz');
@@ -736,7 +743,7 @@ describe('HU-07 adaptada: persistencia API sin migración local', () => {
     server.seed(fixtures);
     const write = vi.spyOn(Storage.prototype, 'setItem');
     const current = await renderHook();
-    expect(current().items).toEqual(fixtures);
+    expect(current().items).toEqual(apiFixtures);
     expect(write).not.toHaveBeenCalled();
     expect(localStorage.getItem(STORAGE_KEY)).toBe(serialized);
   });
@@ -750,8 +757,8 @@ describe('HU-07 adaptada: persistencia API sin migración local', () => {
         quantity: 5
       });
     });
-    expect(storedItems()).toEqual([fixtures[0], {
-      ...fixtures[1],
+    expect(storedItems()).toEqual([apiFixtures[0], {
+      ...apiFixtures[1],
       name: 'Pan integral',
       quantity: 5
     }]);
@@ -771,7 +778,7 @@ describe('HU-07 adaptada: persistencia API sin migración local', () => {
     await remount();
     expect(container.querySelectorAll('li')).toHaveLength(1);
     expect(container.querySelector('.product-name').textContent.trim()).toBe('Pan');
-    expect(storedItems()).toEqual([fixtures[1]]);
+    expect(storedItems()).toEqual([apiFixtures[1]]);
   });
   it('CP-07: persiste marcación y desmarcación con su último estado', async () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify([fixtures[0]]));
@@ -1048,7 +1055,8 @@ describe('HU-08: resumen global de compras', () => {
       id: expect.any(String),
       name: 'Pan',
       quantity: 20,
-      purchased: true
+      purchased: true,
+      category: 'Otros'
     }]);
   });
   it('CP-11 a CP-13: recuperación y filtros conservan resumen global sin escrituras extra', async () => {
@@ -1056,17 +1064,20 @@ describe('HU-08: resumen global de compras', () => {
       id: 'uno',
       name: 'Arroz',
       quantity: 8,
-      purchased: false
+      purchased: false,
+      category: 'Otros'
     }, {
       id: 'dos',
       name: 'Pan',
       quantity: 5,
-      purchased: true
+      purchased: true,
+      category: 'Otros'
     }, {
       id: 'tres',
       name: 'Leche',
       quantity: 2,
-      purchased: false
+      purchased: false,
+      category: 'Otros'
     }];
     const serialized = JSON.stringify(fixtures);
     localStorage.setItem(STORAGE_KEY, serialized);
@@ -1100,7 +1111,8 @@ describe('useShoppingList: validación independiente y estado', () => {
       id: expect.any(String),
       name: 'Arroz',
       quantity: 2,
-      purchased: false
+      purchased: false,
+      category: 'Otros'
     }]);
     expect(current().items[0].id).not.toBe('');
   });
