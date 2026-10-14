@@ -7,7 +7,9 @@
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "db:init": "node database/initialize.js",
+    "test:mysql": "vitest run --config vitest.mysql.config.js"
   },
   "engines": {
     "node": ">=22.12.0"

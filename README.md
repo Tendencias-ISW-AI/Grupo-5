@@ -244,7 +244,7 @@ La información se almacena localmente en el navegador y origen utilizados, sin 
 
 ## Ampliación: backend y Spec-Driven Development
 
-El frontend conserva su estructura en la raíz, sus comandos npm y la persistencia con localStorage. La nueva base técnica vive en `backend/` con un `package.json` y un lockfile independientes. Aún no existen endpoints de productos, tablas MySQL ni integración de React con el servidor. Los requisitos originales de HU-01 a HU-08 documentan el alcance frontend anterior; esta ampliación no los modifica.
+El frontend conserva su estructura en la raíz, sus comandos npm y la persistencia con localStorage. El backend vive en `backend/` con un `package.json` y un lockfile independientes. HU-09 implementa la consulta de productos persistidos en MySQL; la integración de React y los endpoints de escritura siguen pendientes. Los requisitos originales de HU-01 a HU-08 documentan el alcance frontend anterior; esta ampliación no los modifica.
 
 ### Instalar y ejecutar el backend
 
@@ -266,11 +266,30 @@ npm run test:watch
 
 `dev` usa el modo watch nativo de Node. `start` ejecuta el servidor sin watch. El puerto predeterminado es 3000. Comprobar `GET http://localhost:3000/health`: debe responder 200 con `{"status":"ok"}`. No consulta MySQL. Las pruebas utilizan Vitest y Supertest y no requieren una base de datos real.
 
-`src/config/database.js` exporta `getPool`, `checkDatabaseConnection` y `closePool`. Importarlo no crea conexiones. La comprobación es explícita y queda pendiente de contar con MySQL y las variables `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD` y `DB_NAME`. No se ejecutó SQL ni se creó el esquema; `database/schema.sql` contiene solo comentarios.
+`src/config/database.js` exporta `getPool`, `checkDatabaseConnection` y `closePool`. Importarlo no crea conexiones. Configurar MySQL local con `DB_HOST=localhost`, `DB_PORT=3306`, `DB_NAME=smartlist_db` y el usuario/contraseña exclusivamente en `.env`. El usuario `root` se utiliza solo para esta práctica local; para otro entorno conviene un usuario con privilegios mínimos.
+
+### HU-09: consultar productos en MySQL
+
+Requiere MySQL >= 8.0.16 para restricciones CHECK efectivas. Desde `backend/`:
+
+```sh
+npm run db:init
+npm test
+npm run test:mysql
+npm start
+```
+
+`db:init` inspecciona versión, existencia y estructura antes de crear únicamente `smartlist_db` y `products` faltantes. No altera tablas existentes; ante incompatibilidad se detiene para revisión. No ejecuta DDL durante importación, inicio del servidor o solicitudes. `database/schema.sql` contiene el esquema de los cuatro atributos del modelo.
+
+`GET http://localhost:3000/api/products` devuelve HTTP 200 y un arreglo JSON directo, ordenado por ID ascendente con comparación binaria. Una lista vacía devuelve `[]`. Cada registro contiene `id`, `name`, `quantity` y `purchased` booleano; quantity no expande registros. La consulta conserva datos y nombres repetidos. MySQL no disponible devuelve HTTP 503 con `{"error":"Servicio temporalmente no disponible"}`; errores inesperados conservan la respuesta 500 genérica existente. `/health` sigue siendo independiente de MySQL.
+
+`npm test` no necesita MySQL real; la suite real se omite por defecto. `npm run test:mysql` la activa explícitamente y requiere `smartlist_db` local preparada. Inserta fixtures con IDs propios y limpia únicamente esos IDs; verifica consulta, orden, restricciones y persistencia tras reconexión y reinicio del proceso. No utilizar la suite real en producción. Para comprobación manual, consultar la API varias veces y reiniciar el servidor: los datos y su orden deben permanecer. No existen endpoints POST, PUT, PATCH o DELETE de productos ni importación desde localStorage.
+
+Artefactos y evidencia de HU-09: `specs/001-consultar-productos/`. La clave Jira definitiva todavía no está confirmada.
 
 ### Spec Kit con Codex
 
-Spec Kit 1.0.13 se inicializó oficialmente en la raíz, con scripts `sh` e integración Codex en `.agents/skills/`. `.specify/` contiene plantillas, manifiestos, scripts y el flujo instalado. La Constitution existente es una plantilla sin completar: no se ejecutó ninguna fase funcional. El ejecutable instalado está en `C:/Users/judri/.local/bin/specify.exe`; si `specify` no se reconoce, añadir ese directorio al PATH local.
+Spec Kit 1.0.13 se inicializó oficialmente en la raíz, con scripts `sh` e integración Codex en `.agents/skills/`. `.specify/` contiene plantillas, manifiestos, scripts y el flujo instalado. La Constitution v1.0.0 está aprobada y ratificada el 2026-10-13. HU-09 conserva especificación, aclaraciones, plan, investigación, modelo, contrato, tareas y validación en su directorio. El ejecutable instalado está en `C:/Users/judri/.local/bin/specify.exe`; si `specify` no se reconoce, añadir ese directorio al PATH local.
 
 Para usar las nuevas habilidades, abrir o recargar Codex en este repositorio. Se invocan con sus nombres `$speckit-*`, no como comandos npm. Los scripts `sh` necesitan Bash; en Windows está disponible Git Bash. Revisar cada etapa antes de continuar:
 
@@ -284,6 +303,6 @@ Para usar las nuevas habilidades, abrir o recargar Codex en este repositorio. Se
 | Analyze | `$speckit-analyze` | Informe de consistencia de especificación, plan y tareas |
 | Implement | `$speckit-implement` | Código y pruebas según las tareas aprobadas |
 
-Las futuras especificaciones se almacenarán en el repositorio. La habilidad Specify puede crear una rama; deberá autorizarse expresamente antes de usarla, conforme a AGENTS.md. No ejecutar etapas en cadena ni commits automáticos. Las instrucciones actuales del usuario prevalecen sobre las automatizaciones de las habilidades.
+Las especificaciones se almacenan en el repositorio. La habilidad Specify puede crear una rama; deberá autorizarse expresamente antes de usarla, conforme a AGENTS.md. No ejecutar etapas en cadena sin autorización ni commits automáticos. Las instrucciones actuales del usuario prevalecen sobre las automatizaciones de las habilidades. HU-09 recibió autorización general para las fases restantes sin cambios de rama.
 
-Para comenzar Constitution, solicitar principios para Node.js/Express/MySQL, arquitectura Routes → Controllers → Services → Repositories, JavaScript/ES Modules, SQL parametrizado, credenciales por entorno, pruebas, preservación del frontend y revisión individual de fases. Aclarar primero que el nuevo alcance autoriza backend mientras los requisitos originales describen el frontend. Ese paso se realizará después de revisar esta configuración.
+Las nuevas historias deben respetar los siete principios de `.specify/memory/constitution.md` y seguir Specify → Clarify → Plan → Tasks → Analyze → Implement con las aprobaciones aplicables. La integración frontend requiere su propia historia autorizada.

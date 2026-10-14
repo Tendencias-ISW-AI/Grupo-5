@@ -1,4 +1,7 @@
 export function errorHandler(error, _request, response, _next) {
+  if (error.code === 'PRODUCT_STORAGE_UNAVAILABLE') {
+    return response.status(503).json({ error: 'Servicio temporalmente no disponible' });
+  }
   const status = Number.isInteger(error.status) && error.status >= 400 && error.status <= 599
     ? error.status
     : 500;
