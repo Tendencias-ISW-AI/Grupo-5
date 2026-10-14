@@ -1,16 +1,9 @@
 import { randomUUID } from 'node:crypto';
-import { spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { createServer } from 'node:net';
-import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import app from '../src/app.js';
 import { closePool, getPool } from '../src/config/database.js';
-
-async function unusedPort() {
-  const probe = createServer(); probe.listen(0, '127.0.0.1'); await once(probe, 'listening');
-  const port = probe.address().port; await new Promise(resolve => probe.close(resolve)); return port;
-}
+import { unusedPort, withServerProcess } from './serverProcess.helper.js';
 
 describe.skipIf(process.env.RUN_MYSQL_TESTS !== '1')('SMARLIST-15 PATCH MySQL real', () => {
   let server, origin, baseline, schema;
@@ -62,16 +55,9 @@ describe.skipIf(process.env.RUN_MYSQL_TESTS !== '1')('SMARLIST-15 PATCH MySQL re
     const edited = await send('PUT', `/api/products/${ids[0]}`, { name: target.name, quantity: 7 });
     expect(edited.status).toBe(200); expect((await edited.json()).purchased).toBe(true);
     const expected = await read(); const port = await unusedPort();
-    const child = spawn(process.execPath, ['src/server.js'], { cwd: fileURLToPath(new URL('../', import.meta.url)),
-      env: { ...process.env, PORT: String(port) }, windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'] });
-    try {
-      await new Promise((resolve, reject) => {
-        const timer = setTimeout(() => reject(new Error('Servidor no disponible')), 5000);
-        child.once('error', () => { clearTimeout(timer); reject(new Error('Proceso no disponible')); });
-        child.stdout.on('data', data => { if (data.toString().includes('disponible')) { clearTimeout(timer); resolve(); } });
-      });
-      const response = await fetch(`http://127.0.0.1:${port}/api/products`); expect(response.status).toBe(200); expect(await response.json()).toEqual(expected);
-    } finally { if (child.exitCode === null) { const exited = once(child, 'exit'); child.kill(); await exited; } }
+    await withServerProcess(async origin => {
+      const response = await fetch(`${origin}/api/products`); expect(response.status).toBe(200); expect(await response.json()).toEqual(expected);
+    }, { port });
   });
   it('indisponibilidad real503 segura, recuperación y DELETE anterior', async () => {
     const before = await read(); const originalPort = process.env.DB_PORT; const port = await unusedPort(); await closePool();
