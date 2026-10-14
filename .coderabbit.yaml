@@ -1,0 +1,49 @@
+# SMARLIST-28: revisión automática de Pull Requests con CodeRabbit.
+# Esquema: https://docs.coderabbit.ai/reference/configuration
+language: es-ES
+tone_instructions: "Responde siempre en español, con tono claro y respetuoso, y explica el porqué de cada sugerencia."
+reviews:
+  profile: chill
+  high_level_summary: true
+  request_changes_workflow: false
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - main
+  path_filters:
+    - "!**/package-lock.json"
+    - "!**/*.png"
+  path_instructions:
+    - path: "src/**"
+      instructions: |
+        Frontend React + Vite. Aplicar las reglas de AGENTS.md: componentes funcionales,
+        lógica de estado en hooks, presentación separada de la lógica, sin TypeScript ni
+        dependencias nuevas sin autorización. Revisar accesibilidad (etiquetas, roles,
+        foco visible, uso con teclado) y diseño adaptable a 360-414 px.
+    - path: "backend/src/**"
+      instructions: |
+        Backend Node.js + Express + MySQL. Aplicar backend/AGENTS.md: flujo
+        Routes → Controllers → Services → Repositories → MySQL, ES Modules, sin ORM.
+        app.js no debe abrir puertos ni conectar la base. Validar entradas, usar
+        consultas parametrizadas y no exponer detalles internos en errores.
+    - path: "backend/tests/**"
+      instructions: |
+        Pruebas Vitest. Las suites *.mysql.test.js deben crear y limpiar solo sus
+        propios fixtures y usar tests/serverProcess.helper.js para iniciar procesos.
+    - path: "tests/**"
+      instructions: "Pruebas del frontend con Vitest y jsdom; no depender de una API real."
+    - path: "specs/**"
+      instructions: |
+        Artefactos Spec-Driven Development. Comprobar coherencia entre spec.md, plan.md,
+        tasks.md y los criterios de aceptación de la historia de Jira correspondiente.
+    - path: "docs/**"
+      instructions: "Documentación en español; comprobar que coincide con el código y con Jira."
+chat:
+  auto_reply: true
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - "AGENTS.md"
+      - "backend/AGENTS.md"
