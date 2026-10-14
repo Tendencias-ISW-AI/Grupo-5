@@ -141,7 +141,7 @@ describe('SMARLIST-19 / HU-15 GET con categoría', () => {
     expect(response.status).toBe(200);
     expect(response.body).toEqual([{ id: 'a', name: 'Pan', quantity: 1, purchased: false, category: 'Panadería' }]);
     expect(mocks.execute).toHaveBeenCalledExactlyOnceWith(
-      'SELECT id, name, quantity, purchased, category FROM products ORDER BY BINARY id ASC',
+      'SELECT id, name, quantity, purchased, category FROM products ORDER BY creation_order ASC',
     );
   });
 

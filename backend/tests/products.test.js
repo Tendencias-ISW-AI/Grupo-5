@@ -8,6 +8,17 @@ import app from '../src/app.js';
 beforeEach(() => { listProducts.mockReset(); listProducts.mockResolvedValue([]); });
 
 describe('HU-09 GET /api/products', () => {
+  it('conserva el orden de registro recibido del repositorio aunque los IDs no sean ascendentes', async () => {
+    const rows = ['Leche', 'Queso', 'Pan', 'Jabón'].map((name, index) => ({
+      id: String(9 - index), name, quantity: 1, purchased: 0, category: 'Otros',
+    }));
+    listProducts.mockResolvedValue(rows);
+    const response = await request(app).get('/api/products');
+    expect(response.status).toBe(200);
+    expect(response.body.map(product => product.name)).toEqual(['Leche', 'Queso', 'Pan', 'Jabón']);
+    expect(response.body.every(product => !Object.hasOwn(product, 'creation_order'))).toBe(true);
+  });
+
   it('devuelve 200 JSON con arreglo vacío directo', async () => {
     const response = await request(app).get('/api/products');
     expect(response.status).toBe(200);
