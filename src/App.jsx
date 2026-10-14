@@ -6,7 +6,7 @@ import ShoppingSummary from "./components/ShoppingSummary.jsx";
 import useShoppingList from "./hooks/useShoppingList.js";
 
 export default function App() {
-  const { items, addProduct, togglePurchased, removeProduct, updateProduct } =
+  const { items, loadState, pending: busy, error, addProduct, togglePurchased, removeProduct, updateProduct } =
     useShoppingList();
   const [activeFilter, setActiveFilter] = useState("all");
   const total = items.length;
@@ -31,20 +31,24 @@ export default function App() {
         <h1>SmartList</h1>
         <p>Organiza tus compras de forma rápida y sencilla.</p>
       </header>
-      <ShoppingForm onAddProduct={addProduct} />
-      <ShoppingSummary total={total} pending={pending} purchased={purchased} />
+      <ShoppingForm onAddProduct={addProduct} disabled={loadState !== 'ready' || busy} />
+      {error && <p className="error" role="alert">{error}</p>}
+      {loadState === 'ready' && <ShoppingSummary total={total} pending={pending} purchased={purchased} />}
       <h2>Lista de compras</h2>
       <ShoppingFilters
         activeFilter={activeFilter}
         onFilterChange={setActiveFilter}
       />
-      <ShoppingList
+      {loadState === 'loading' && <p role="status">Cargando productos...</p>}
+      {loadState === 'error' && <p>La lista no pudo cargarse. Comprueba la conexión y recarga la página.</p>}
+      {loadState === 'ready' && <ShoppingList
         items={visibleItems}
         emptyMessage={emptyMessage}
         onTogglePurchased={togglePurchased}
         onRemoveProduct={removeProduct}
         onUpdateProduct={updateProduct}
-      />
+        disabled={busy}
+      />}
     </main>
   );
 }

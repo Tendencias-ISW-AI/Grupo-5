@@ -18,7 +18,7 @@ La aplicación contempla las siguientes funcionalidades:
 - Eliminar productos.
 - Editar la información de los productos.
 - Filtrar productos según su estado.
-- Conservar la lista mediante almacenamiento local.
+- Conservar la lista mediante MySQL y la API REST.
 - Consultar un resumen de productos comprados y pendientes.
 
 Las funcionalidades se implementarán progresivamente de acuerdo con las historias de usuario definidas en Jira.
@@ -31,7 +31,8 @@ Las funcionalidades se implementarán progresivamente de acuerdo con las histori
 | Vite | Entorno de desarrollo y compilación |
 | JavaScript | Implementación de la lógica de la aplicación |
 | CSS | Estilos y diseño adaptable |
-| localStorage | Persistencia local de productos |
+| Node.js + Express | API REST por capas |
+| MySQL | Persistencia de productos |
 | Vitest | Pruebas automatizadas |
 | Git y GitHub | Control de versiones y repositorio |
 | Jira | Gestión de historias de usuario |
@@ -43,7 +44,7 @@ SmartList utiliza una arquitectura frontend basada en componentes de React, orga
 
 La interfaz se divide en componentes reutilizables y la lógica de estado se administra mediante hooks personalizados.
 
-No se requiere backend ni base de datos externa. La persistencia se realizará mediante `localStorage` del navegador.
+Desde HU-14, React consulta y modifica productos mediante Express y MySQL. Se mantienen componentes y un único estado de productos confirmados por el servidor.
 
 La descripción técnica se encuentra en `docs/architecture.md`.
 
@@ -59,11 +60,14 @@ smartlist/
 │   └── stories/
 ├── src/
 │   ├── components/
+│   ├── services/
 │   ├── hooks/
 │   ├── App.jsx
 │   ├── App.css
 │   └── main.jsx
-└── tests/
+├── tests/
+├── backend/
+└── specs/
 ```
 
 La estructura puede incluir otros archivos necesarios para la configuración y ejecución del proyecto.
@@ -98,6 +102,8 @@ npm install
 ```
 
 ### 4. Iniciar el servidor de desarrollo
+
+Preparar primero MySQL y arrancar el backend como se explica más abajo. API predeterminada: `http://localhost:3000/api`. Para cambiarla, copiar `.env.example` a `.env` y ajustar solo `VITE_API_BASE_URL`. No incluir secretos en Vite. Mantener `FRONTEND_ORIGIN=http://localhost:5173` en backend.
 
 ```bash
 npm run dev
@@ -159,13 +165,9 @@ Abrir en el navegador la dirección local indicada por Vite.
 
 #### Almacenamiento y errores
 
-Se utiliza la clave `smartlist.products`, con un arreglo JSON de productos. Se valida la colección completa sin convertir tipos ni regenerar IDs; si algún registro es inválido, se rechaza toda la colección. El montaje nunca escribe, incluso en StrictMode.
+HU-14 sustituye la persistencia activa de HU-07 por MySQL. Los datos históricos de `smartlist.products` se conservan sin leerlos, migrarlos, sobrescribirlos ni borrarlos automáticamente: no aparecerán en la lista conectada. `shoppingListStorage.js` permanece solo para comprobar el formato histórico en pruebas aisladas; la aplicación no lo importa.
 
-Sin datos se inicia una lista vacía. Ante JSON corrupto o datos inválidos se inicia vacío en memoria y se conserva inicialmente el contenido original. La primera modificación válida confirmada reemplaza ese contenido por la colección actual en memoria; filtros, borradores, cancelaciones y operaciones rechazadas no lo reemplazan.
-
-Si falla el acceso o la lectura, se bloquean escrituras durante esa sesión para proteger datos desconocidos. Si falla una escritura, se conserva el estado en memoria y el contenido anterior; el siguiente cambio confirmado vuelve a intentar guardar. No hay indicador visual de esos fallos, por lo que los cambios en memoria pueden perderse al recargar.
-
-localStorage depende de navegador, perfil y origen (protocolo, host y puerto). Borrar sus datos elimina la lista; no hay sincronización entre dispositivos o pestañas. No se guardan filtros, formularios, borradores ni mensajes de error.
+La interfaz diferencia carga, error y lista vacía. Solo muestra cambios confirmados; un fallo conserva productos y formulario. Las escrituras se serializan y los controles se bloquean mientras se confirman. Tras una carga fallida, solucionar conexión y recargar. Sin reintentos automáticos, modo sin conexión, autenticación ni sincronización en tiempo real entre clientes. Filtros, contadores y borradores no se persisten.
 
 #### Verificación manual de HU-08
 
@@ -232,7 +234,7 @@ El código generado por IA debe ser revisado y validado por los desarrolladores 
 
 **En desarrollo académico.**
 
-HU-01 permite agregar productos con nombre y cantidad y validar los datos. HU-02 muestra todos los registros con su nombre, cantidad y estado recibido (Pendiente o Comprado), y el mensaje "Tu lista de compras está vacía" cuando no hay productos. HU-03 permite marcar y desmarcar cada producto mediante un checkbox accesible; los comprados muestran su nombre tachado. HU-04 permite eliminar cada producto mediante su botón, conservando los demás registros. Al eliminar el último, aparece el mensaje de lista vacía. HU-05 permite editar nombre y cantidad, validar, guardar o cancelar sin alterar el identificador ni el estado de compra. HU-06 permite filtrar por Todos, Pendientes y Comprados, con indicador del filtro activo y mensajes sin resultados. Los filtros conservan los datos y el orden de registro. Todas estas operaciones actualizan la interfaz inmediatamente. HU-07 guarda automáticamente los cambios de productos en localStorage y los recupera al recargar o reabrir en el mismo origen. HU-08 muestra el total global de registros, pendientes y comprados, con actualización automática y sin depender del filtro. Las ocho historias del alcance inicial están implementadas; la revisión final del proyecto sigue correspondiendo al equipo.
+HU-01 permite agregar productos con nombre y cantidad y validar los datos. HU-02 muestra todos los registros con su nombre, cantidad y estado recibido (Pendiente o Comprado), y el mensaje "Tu lista de compras está vacía" cuando no hay productos. HU-03 permite marcar y desmarcar cada producto mediante un checkbox accesible; los comprados muestran su nombre tachado. HU-04 permite eliminar cada producto mediante su botón, conservando los demás registros. Al eliminar el último, aparece el mensaje de lista vacía. HU-05 permite editar nombre y cantidad, validar, guardar o cancelar sin alterar el identificador ni el estado de compra. HU-06 permite filtrar por Todos, Pendientes y Comprados, con indicador del filtro activo y mensajes sin resultados. Los filtros conservan los datos y el orden de registro. Todas estas operaciones actualizan la interfaz inmediatamente. HU-07 introdujo persistencia local, sustituida por MySQL en la integración HU-14; se conserva la recuperación tras recargar o reabrir. HU-08 muestra el total global de registros, pendientes y comprados, con actualización automática y sin depender del filtro. Las ocho historias del alcance inicial están implementadas; la revisión final del proyecto sigue correspondiendo al equipo.
 
 Las funcionalidades se incorporan progresivamente mediante historias de usuario y control de versiones en GitHub.
 
@@ -244,7 +246,7 @@ La información se almacena localmente en el navegador y origen utilizados, sin 
 
 ## Ampliación: backend y Spec-Driven Development
 
-El frontend conserva su estructura en la raíz, sus comandos npm y la persistencia con localStorage. El backend vive en `backend/` con un `package.json` y un lockfile independientes. HU-09 consulta productos, HU-11 (SMARLIST-12) los registra, HU-12 (SMARLIST-13) edita nombre y cantidad y HU-13 (SMARLIST-14) los elimina físicamente en MySQL. La integración de React y el cambio de estado en la API siguen pendientes. Los requisitos originales de HU-01 a HU-08 documentan el alcance frontend anterior; esta ampliación no los modifica.
+El frontend conserva estructura y comandos en la raíz. Backend en `backend/` con dependencias independientes. GET, POST, PUT y DELETE se completan con PATCH y la integración React–API de HU-14 / SMARLIST-15. MySQL es la única persistencia activa. HU-01 a HU-08 documentan la etapa original, cuyos requisitos históricos se conservan.
 
 ### Instalar y ejecutar el backend
 
@@ -283,7 +285,7 @@ npm start
 
 `GET http://localhost:3000/api/products` devuelve HTTP 200 y un arreglo JSON directo, ordenado por ID ascendente con comparación binaria. Una lista vacía devuelve `[]`. Cada registro contiene `id`, `name`, `quantity` y `purchased` booleano; quantity no expande registros. La consulta conserva datos y nombres repetidos. MySQL no disponible devuelve HTTP 503 con `{"error":"Servicio temporalmente no disponible"}`; errores inesperados conservan la respuesta 500 genérica existente. `/health` sigue siendo independiente de MySQL.
 
-`npm test` no necesita MySQL real; las suites reales se omiten por defecto. `npm run test:mysql` las activa explícitamente y requiere `smartlist_db` local preparada. Se ejecutan secuencialmente para proteger las comprobaciones de colección inicial/final. Crean fixtures identificables y limpian únicamente sus IDs; verifican consulta, registro, edición, eliminación, orden, restricciones y persistencia. No utilizar las suites reales en producción. No hay PATCH de cambio de estado ni importación desde localStorage. Las pruebas comparan datos y esquema antes y después y no eliminan registros preexistentes del usuario.
+`npm test` no necesita MySQL real; las suites reales se omiten por defecto. `npm run test:mysql` las activa explícitamente y requiere `smartlist_db` local preparada. Se ejecutan secuencialmente para proteger las comprobaciones de colección inicial/final. Crean fixtures identificables y limpian únicamente sus IDs; verifican consulta, registro, edición, eliminación, orden, restricciones y persistencia. No utilizar las suites reales en producción. PATCH y la integración están implementados; no hay importación desde localStorage. Las pruebas comparan datos y esquema antes y después y no eliminan registros preexistentes del usuario.
 
 Artefactos y evidencia de HU-09: `specs/001-consultar-productos/`. La clave Jira definitiva todavía no está confirmada.
 
@@ -336,3 +338,11 @@ Para usar las nuevas habilidades, abrir o recargar Codex en este repositorio. Se
 Las especificaciones se almacenan en el repositorio. La habilidad Specify puede crear una rama; deberá autorizarse expresamente antes de usarla, conforme a AGENTS.md. No ejecutar etapas en cadena sin autorización ni commits automáticos. Las instrucciones actuales del usuario prevalecen sobre las automatizaciones de las habilidades. HU-09 recibió autorización general para las fases restantes sin cambios de rama.
 
 Las nuevas historias deben respetar los siete principios de `.specify/memory/constitution.md` y seguir Specify → Clarify → Plan → Tasks → Analyze → Implement con las aprobaciones aplicables. La integración frontend requiere su propia historia autorizada.
+
+### HU-14 / SMARLIST-15: integración Full Stack y estado
+
+`PATCH /api/products/:id/status` recibe exclusivamente `{"purchased":true}` o false. UUID como DELETE, booleano estricto sin coerción. Responde200 con producto completo, incluso con el mismo estado;400 inválido,404 inexistente,503 indisponible seguro. Solo cambia purchased con SQL parametrizado en las capas existentes; conserva id/name/quantity y el esquema.
+
+React usa GET/POST/PUT/PATCH/DELETE a través de `src/services/productsApi.js`. Los formularios esperan confirmación, DELETE espera204 sin interpretar JSON y el servidor genera IDs. Filtros/resumen se calculan desde la colección global sin escrituras. Carga cancelable y cola serializada protegen de respuestas obsoletas y alternancias consecutivas.
+
+Comprobación: iniciar MySQL, `npm start` en backend y `npm run dev` en raíz. Registrar fixture propio, editar, marcar/desmarcar, cambiar filtros y comprobar resumen; recargar para recuperar desde MySQL y eliminar el fixture. Revisar teclado y móvil. No utilizar datos preexistentes para pruebas. Ejecutar `npm test` en ambos proyectos, `npm run test:mysql` en backend y `npm run build` en raíz. Artefactos y evidencia real: `specs/005-integracion-full-stack/validation.md`.
