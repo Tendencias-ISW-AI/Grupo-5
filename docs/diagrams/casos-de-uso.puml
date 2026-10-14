@@ -1,0 +1,37 @@
+@startuml
+title SmartList - Casos de uso implementados
+left to right direction
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+actor "Usuario" as Usuario
+
+rectangle "SmartList" {
+  usecase "Registrar producto" as Registrar
+  usecase "Visualizar lista\nde productos" as Visualizar
+  usecase "Editar nombre y cantidad\n(guardar o cancelar)" as Editar
+  usecase "Marcar o desmarcar\ncomo comprado" as Estado
+  usecase "Eliminar producto" as Eliminar
+  usecase "Filtrar: Todos,\nPendientes y Comprados" as Filtrar
+  usecase "Consultar resumen\nde compras" as Resumen
+}
+
+Usuario -- Registrar
+Usuario -- Visualizar
+Usuario -- Editar
+Usuario -- Estado
+Usuario -- Eliminar
+Usuario -- Filtrar
+Usuario -- Resumen
+
+note right of Visualizar
+  Al abrir o recargar, los productos
+  se recuperan mediante la API desde MySQL.
+end note
+
+note right of Resumen
+  Total, pendientes y comprados.
+  Se calculan sobre la lista completa,
+  independientemente del filtro.
+end note
+@enduml

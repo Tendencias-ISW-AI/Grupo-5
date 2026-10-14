@@ -1,0 +1,65 @@
+sequenceDiagram
+    autonumber
+    actor Usuario
+    participant Form as ShoppingForm
+    participant Hook as useShoppingList
+    participant API as productsApi
+    participant Routes as Express / productRoutes
+    participant Controller as productController
+    participant Service as productService
+    participant Repo as productRepository
+    participant DB as MySQL - products
+
+    Note over Form,Hook: La carga inicial GET ya terminó correctamente
+    Usuario->>Form: Ingresa nombre y cantidad, pulsa Agregar
+    Form->>Form: validateProduct(name, quantity)
+
+    alt Datos inválidos en el formulario
+        Form-->>Usuario: Muestra errores y conserva los campos
+    else Datos válidos
+        Form->>Hook: onAddProduct(name, quantity), conectado por App
+        Hook->>Hook: Valida y encola la operación
+        Hook->>API: createProduct({name, quantity})
+        API->>Routes: POST /api/products con JSON
+        Routes->>Controller: registerProduct(request, response, next)
+        Controller->>Service: createProduct(request.body)
+        Service->>Service: Valida cuerpo y límites, aplica trim
+
+        alt Solicitud inválida para el backend
+            Service-->>Controller: Error de validación
+            Controller->>Routes: next(error), procesado por errorHandler
+            Routes-->>API: HTTP 400 con JSON de error
+            API-->>Hook: Error de la solicitud
+            Hook-->>Form: success false, errors
+            Form-->>Usuario: Muestra error y conserva campos
+        else Solicitud válida
+            Service->>Service: Genera randomUUID y purchased false
+            Service->>Repo: insertProduct(product)
+            Note over Repo,DB: getPool().execute con mysql2/promise
+            Repo->>DB: INSERT INTO products (id, name, quantity, purchased) VALUES (?, ?, ?, ?)
+
+            alt Inserción confirmada
+                DB-->>Repo: affectedRows = 1
+                Repo-->>Service: Inserción confirmada
+                Service-->>Controller: Producto creado con cuatro atributos
+                Controller-->>Routes: response.status(201).json(product)
+                Routes-->>API: HTTP 201 con producto JSON
+                API->>API: Valida estado HTTP y modelo recibido
+                API-->>Hook: Producto confirmado
+                Hook->>Hook: Incorpora producto a items y actualiza React
+                Note over Hook,Form: App actualiza ShoppingList y ShoppingSummary desde items
+                Hook-->>Form: success true, errors vacío
+                Form->>Form: Limpia nombre y cantidad
+                Form-->>Usuario: Producto visible, pendiente y persistido
+            else Error de almacenamiento
+                DB-->>Repo: Error de MySQL
+                Repo-->>Service: Propaga error
+                Service-->>Controller: Error controlado o inesperado
+                Controller->>Routes: next(error), procesado por errorHandler
+                Routes-->>API: HTTP 503 conocido o 500 genérico, sin detalles internos
+                API-->>Hook: Error de la solicitud
+                Hook-->>Form: success false, errors
+                Form-->>Usuario: Muestra error, conserva campos y colección
+            end
+        end
+    end
