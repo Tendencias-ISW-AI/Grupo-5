@@ -22,7 +22,7 @@ describe.skipIf(process.env.RUN_MYSQL_TESTS !== '1')('SMARLIST-15 PATCH MySQL re
   async function read() { const response = await send('GET', '/api/products'); expect(response.status).toBe(200); return response.json(); }
   beforeAll(async () => {
     if (process.env.DB_NAME !== 'smartlist_db' || !['localhost', '127.0.0.1', '::1'].includes(process.env.DB_HOST ?? 'localhost')) throw new Error('Se requiere smartlist_db local.');
-    const [definition] = await getPool().execute('SHOW CREATE TABLE products'); schema = definition[0]['Create Table'];
+    const [definition] = await getPool().execute('SHOW CREATE TABLE products'); schema = definition[0]['Create Table'].replace(/ AUTO_INCREMENT=\d+/g, '');
     server = app.listen(0, '127.0.0.1'); await once(server, 'listening'); origin = `http://127.0.0.1:${server.address().port}`;
     baseline = await read();
     const name = `HU14-${randomUUID()}-Arroz`;
@@ -36,7 +36,7 @@ describe.skipIf(process.env.RUN_MYSQL_TESTS !== '1')('SMARLIST-15 PATCH MySQL re
       for (const id of ids) await getPool().execute('DELETE FROM products WHERE id = ?', [id]);
       if (baseline) {
         expect(await read()).toEqual(baseline);
-        const [definition] = await getPool().execute('SHOW CREATE TABLE products'); expect(definition[0]['Create Table']).toBe(schema);
+        const [definition] = await getPool().execute('SHOW CREATE TABLE products'); expect(definition[0]['Create Table'].replace(/ AUTO_INCREMENT=\d+/g, '')).toBe(schema);
       }
     } finally { if (server) await new Promise(resolve => server.close(resolve)); await closePool(); }
   });

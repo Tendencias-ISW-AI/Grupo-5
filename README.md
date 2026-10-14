@@ -267,6 +267,56 @@ SmartList es una aplicación educativa. No contempla autenticación, colaboraci�
 
 Los productos se conservan en MySQL mediante la API propia. No hay sincronización automática entre clientes ni persistencia alternativa en el navegador ante fallos: la interfaz muestra el error y conserva los datos ya confirmados. Los productos históricos de localStorage no se importan automáticamente.
 
+## Integración continua (CI)
+
+SMARLIST-24 incorpora `.github/workflows/ci.yml`. Cada Pull Request dirigido a `main` ejecuta CI al abrirse, reabrirse o recibir nuevos commits, independientemente del nombre de su rama de origen. Utiliza runners Ubuntu, Node.js 22 y tres jobs independientes:
+
+| Check | Directorio | Comandos |
+|---|---|---|
+| `CI - Frontend` | Raíz | `npm ci`, `npm test`, `npm run build` |
+| `CI - Backend` | `backend/` | `npm ci`, `npm test` |
+| `CI - MySQL` | `backend/` | `npm ci`, `npm run db:init`, `npm run test:mysql` |
+
+La caché de npm utiliza el archivo de lock de cada proyecto; las dependencias se instalan siempre con `npm ci`. El token de GitHub tiene únicamente `contents: read` y checkout no conserva sus credenciales. No se necesitan secretos de GitHub ni credenciales del entorno de desarrollo.
+
+En el Pull Request, abrir **Checks** o **Details** junto al check para ver el job, el paso y sus logs. También se puede consultar la pestaña **Actions**, workflow **CI**. Un comando que termina con error hace fallar su job y el workflow; los pasos posteriores de ese job no se ejecutan. Los otros jobs independientes pueden terminar para mostrar sus resultados. No hay `continue-on-error` ni comandos que ignoren fallos.
+
+Para ejecutar las mismas validaciones localmente, utilizar Node.js 22 y, desde la raíz:
+
+```sh
+npm ci
+npm test
+npm run build
+cd backend
+npm ci
+npm test
+```
+
+### MySQL en CI y en desarrollo
+
+`npm test` omite por defecto las suites que requieren una base real. El job `CI - MySQL` las activa explícitamente mediante `npm run test:mysql`; utiliza un servicio desechable `mysql:8.0` y un health check antes de inicializar el esquema. Las variables son `DB_HOST=127.0.0.1`, `DB_PORT=3306`, `DB_NAME=smartlist_db`, `DB_USER=root` y una contraseña pública exclusiva del contenedor de prueba. Esta cuenta puede crear el esquema y aplicar sus restricciones; el servicio se elimina al terminar el job. Nunca reutilizar estas credenciales fuera de CI.
+
+Para probar localmente, disponer de MySQL 8.0.16 o superior en localhost:3306 y configurar `backend/.env` siguiendo `backend/.env.example`, con credenciales propias y `DB_NAME=smartlist_db`. Desde `backend/`:
+
+```sh
+npm run db:init
+npm run test:mysql
+```
+
+Usar una base local de desarrollo, nunca producción. Las suites crean y limpian sus propios fixtures y se ejecutan secuencialmente según `vitest.mysql.config.js`. Incluyen pruebas HTTP y reinicio de procesos de la API; no es necesario iniciar Express manualmente.
+
+### Exigir los checks para fusionar a main
+
+Crear el workflow **no activa automáticamente la protección de rama**. Un administrador del repositorio de destino debe:
+
+1. Ejecutar CI en un Pull Request hacia `main` para que GitHub registre los tres checks. Los PR de un fork o de un colaborador nuevo pueden necesitar aprobación de un mantenedor para ejecutar Actions.
+2. En **Settings → Branches**, crear o editar una regla de protección para `main` (o utilizar **Settings → Rules → Rulesets** con destino `main`).
+3. Activar **Require a pull request before merging** y **Require status checks to pass before merging**.
+4. Seleccionar `CI - Frontend`, `CI - Backend` y `CI - MySQL`, preferiblemente con GitHub Actions como fuente. Si se exige una rama actualizada, activar **Require branches to be up to date before merging**.
+5. Guardar la regla y configurar que los permisos de omisión no permitan eludir estas validaciones, según la política del equipo.
+
+La regla debe configurarse en el repositorio donde se fusionará el PR; proteger un fork no protege el repositorio original. Mientras estos checks no sean obligatorios, un workflow fallido informa del error pero no impide por sí solo la fusión. Consultar la [documentación de protección de ramas de GitHub](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches).
+
 ## Ampliación: backend y Spec-Driven Development
 
 El frontend conserva estructura y comandos en la raíz. Backend en `backend/` con dependencias independientes. GET, POST, PUT y DELETE se completan con PATCH y la integración React–API de HU-14 / SMARLIST-15. MySQL es la única persistencia activa. HU-15 (SMARLIST-19) agrega la categoría de producto en la API. HU-01 a HU-08 documentan la etapa original, cuyos requisitos históricos se conservan.
@@ -385,3 +435,15 @@ Las nuevas historias deben respetar los siete principios de `.specify/memory/con
 React usa GET/POST/PUT/PATCH/DELETE a través de `src/services/productsApi.js`. Los formularios esperan confirmación, DELETE espera204 sin interpretar JSON y el servidor genera IDs. Filtros/resumen se calculan desde la colección global sin escrituras. Carga cancelable y cola serializada protegen de respuestas obsoletas y alternancias consecutivas.
 
 Comprobación: iniciar MySQL, `npm start` en backend y `npm run dev` en raíz. Registrar fixture propio, editar, marcar/desmarcar, cambiar filtros y comprobar resumen; recargar para recuperar desde MySQL y eliminar el fixture. Revisar teclado y móvil. No utilizar datos preexistentes para pruebas. Ejecutar `npm test` en ambos proyectos, `npm run test:mysql` en backend y `npm run build` en raíz. Artefactos y evidencia real: `specs/005-integracion-full-stack/validation.md`.
+
+### SMARLIST-23: conservar el orden de registro
+
+MySQL asigna `creation_order BIGINT UNSIGNED NOT NULL AUTO_INCREMENT` con índice único. GET ordena por esta secuencia sin exponerla en JSON; el UUID sigue siendo el identificador público. No depende de timestamps ni del reloj del cliente. Inserciones simultáneas se ordenan por la asignación de secuencia de MySQL, sin prometer el orden de llegada HTTP ni de confirmación de transacciones; pueden existir saltos por inserciones fallidas.
+
+Con el backend detenido, ejecutar `npm run db:init` desde `backend/` antes de iniciar la versión actualizada. No ejecutar el archivo SQL de migración directamente: el inicializador coordina sus etapas. Se requiere permiso LOCK TABLES además de los permisos de inicialización existentes. La migración añade una columna nullable, bloquea products para escribir y numera las filas en orden `BINARY id ASC`; finalmente activa AUTO_INCREMENT y su índice único. No reconstruye el orden histórico real. Los productos nuevos quedan después de los anteriores. No se eliminan productos ni se recrea la tabla mediante DROP/CREATE. El bloqueo y ALTER pueden demorar según el tamaño de la tabla.
+
+La salida añade `creationOrderAdded`. Repetir la inicialización no cambia secuencias ni ejecuta DDL sobre un esquema actualizado. Una interrupción antes del último ALTER deja una columna nullable reconocida: repetir db:init con el backend detenido retoma el relleno. No ejecutar inicializadores simultáneos.
+
+Validación: `npm test -- --maxWorkers=1` en raíz y backend; `npm run build` en raíz; `npm run test:mysql` en backend con una base local preparada. Las pruebas de migración crean y eliminan únicamente esquemas desechables con prefijo smartlist_order_test_ y requieren permiso CREATE/DROP DATABASE. Incluyen esquema vacío, anteriores sin/con categoría, migración interrumpida e idempotencia. Las pruebas HTTP verifican registros rápidos, concurrencia, reconexión y reinicio real del proceso servidor.
+
+Comprobación manual: registrar Leche → Queso → Pan → Jabón en la vista sin agrupación, recargar y reiniciar el backend; consultar GET /api/products y comprobar el mismo orden. Los filtros conservan el orden relativo; la agrupación opcional conserva el orden dentro de cada categoría. Las pruebas de React remontan la aplicación con HTTP simulado y no sustituyen una comprobación visual en navegador.

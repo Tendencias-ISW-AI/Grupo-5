@@ -8,6 +8,8 @@ CREATE TABLE IF NOT EXISTS smartlist_db.products (
   quantity INT NOT NULL,
   purchased BOOLEAN NOT NULL DEFAULT FALSE,
   category VARCHAR(30) NOT NULL DEFAULT 'Otros',
+  creation_order BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  UNIQUE KEY uq_product_creation_order (creation_order),
   CONSTRAINT chk_product_id CHECK (CHAR_LENGTH(TRIM(id)) > 0),
   CONSTRAINT chk_product_name CHECK (CHAR_LENGTH(TRIM(name)) > 0),
   CONSTRAINT chk_product_quantity CHECK (quantity > 0),

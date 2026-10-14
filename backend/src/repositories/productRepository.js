@@ -1,7 +1,7 @@
 import { getPool } from '../config/database.js';
 
 export async function listProducts() {
-  const [rows] = await getPool().execute('SELECT id, name, quantity, purchased, category FROM products ORDER BY BINARY id ASC');
+  const [rows] = await getPool().execute('SELECT id, name, quantity, purchased, category FROM products ORDER BY creation_order ASC');
   return rows;
 }
 

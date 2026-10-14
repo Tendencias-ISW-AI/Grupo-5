@@ -14,8 +14,7 @@ const fixtures = [
 ];
 const ids = fixtures.map(product => product.id);
 // Insertados sin category: MySQL aplica el valor por defecto 'Otros' (HU-15).
-const expected = fixtures.map(product => ({ ...product, purchased: product.purchased === 1, category: 'Otros' }))
-  .sort((a, b) => Buffer.compare(Buffer.from(a.id), Buffer.from(b.id)));
+const expected = fixtures.map(product => ({ ...product, purchased: product.purchased === 1, category: 'Otros' }));
 
 describe.skipIf(process.env.RUN_MYSQL_TESTS !== '1')('HU-09 MySQL real (fixtures propios)', () => {
   let baseline;
@@ -53,7 +52,8 @@ describe.skipIf(process.env.RUN_MYSQL_TESTS !== '1')('HU-09 MySQL real (fixtures
     expect(response.status).toBe(200);
     expect(response.body.filter(product => ids.includes(product.id))).toEqual(expected);
     const resultIds = response.body.map(product => product.id);
-    expect(resultIds).toEqual([...resultIds].sort((a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b))));
+    const [stored] = await getPool().execute('SELECT id FROM products ORDER BY creation_order ASC');
+    expect(resultIds).toEqual(stored.map(product => product.id));
   });
 
   it('tres GET consecutivos son iguales y no modifican MySQL', async () => {
