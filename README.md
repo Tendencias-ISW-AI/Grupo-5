@@ -257,6 +257,56 @@ SmartList es una aplicación educativa. No contempla autenticación, colaboraci�
 
 La información se almacena localmente en el navegador y origen utilizados, sin sincronización entre dispositivos. Si el almacenamiento no está disponible, la aplicación continúa en memoria.
 
+## Integración continua (CI)
+
+SMARLIST-24 incorpora `.github/workflows/ci.yml`. Cada Pull Request dirigido a `main` ejecuta CI al abrirse, reabrirse o recibir nuevos commits, independientemente del nombre de su rama de origen. Utiliza runners Ubuntu, Node.js 22 y tres jobs independientes:
+
+| Check | Directorio | Comandos |
+|---|---|---|
+| `CI - Frontend` | Raíz | `npm ci`, `npm test`, `npm run build` |
+| `CI - Backend` | `backend/` | `npm ci`, `npm test` |
+| `CI - MySQL` | `backend/` | `npm ci`, `npm run db:init`, `npm run test:mysql` |
+
+La caché de npm utiliza el archivo de lock de cada proyecto; las dependencias se instalan siempre con `npm ci`. El token de GitHub tiene únicamente `contents: read` y checkout no conserva sus credenciales. No se necesitan secretos de GitHub ni credenciales del entorno de desarrollo.
+
+En el Pull Request, abrir **Checks** o **Details** junto al check para ver el job, el paso y sus logs. También se puede consultar la pestaña **Actions**, workflow **CI**. Un comando que termina con error hace fallar su job y el workflow; los pasos posteriores de ese job no se ejecutan. Los otros jobs independientes pueden terminar para mostrar sus resultados. No hay `continue-on-error` ni comandos que ignoren fallos.
+
+Para ejecutar las mismas validaciones localmente, utilizar Node.js 22 y, desde la raíz:
+
+```sh
+npm ci
+npm test
+npm run build
+cd backend
+npm ci
+npm test
+```
+
+### MySQL en CI y en desarrollo
+
+`npm test` omite por defecto las suites que requieren una base real. El job `CI - MySQL` las activa explícitamente mediante `npm run test:mysql`; utiliza un servicio desechable `mysql:8.0` y un health check antes de inicializar el esquema. Las variables son `DB_HOST=127.0.0.1`, `DB_PORT=3306`, `DB_NAME=smartlist_db`, `DB_USER=root` y una contraseña pública exclusiva del contenedor de prueba. Esta cuenta puede crear el esquema y aplicar sus restricciones; el servicio se elimina al terminar el job. Nunca reutilizar estas credenciales fuera de CI.
+
+Para probar localmente, disponer de MySQL 8.0.16 o superior en localhost:3306 y configurar `backend/.env` siguiendo `backend/.env.example`, con credenciales propias y `DB_NAME=smartlist_db`. Desde `backend/`:
+
+```sh
+npm run db:init
+npm run test:mysql
+```
+
+Usar una base local de desarrollo, nunca producción. Las suites crean y limpian sus propios fixtures y se ejecutan secuencialmente según `vitest.mysql.config.js`. Incluyen pruebas HTTP y reinicio de procesos de la API; no es necesario iniciar Express manualmente.
+
+### Exigir los checks para fusionar a main
+
+Crear el workflow **no activa automáticamente la protección de rama**. Un administrador del repositorio de destino debe:
+
+1. Ejecutar CI en un Pull Request hacia `main` para que GitHub registre los tres checks. Los PR de un fork o de un colaborador nuevo pueden necesitar aprobación de un mantenedor para ejecutar Actions.
+2. En **Settings → Branches**, crear o editar una regla de protección para `main` (o utilizar **Settings → Rules → Rulesets** con destino `main`).
+3. Activar **Require a pull request before merging** y **Require status checks to pass before merging**.
+4. Seleccionar `CI - Frontend`, `CI - Backend` y `CI - MySQL`, preferiblemente con GitHub Actions como fuente. Si se exige una rama actualizada, activar **Require branches to be up to date before merging**.
+5. Guardar la regla y configurar que los permisos de omisión no permitan eludir estas validaciones, según la política del equipo.
+
+La regla debe configurarse en el repositorio donde se fusionará el PR; proteger un fork no protege el repositorio original. Mientras estos checks no sean obligatorios, un workflow fallido informa del error pero no impide por sí solo la fusión. Consultar la [documentación de protección de ramas de GitHub](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches).
+
 ## Ampliación: backend y Spec-Driven Development
 
 El frontend conserva estructura y comandos en la raíz. Backend en `backend/` con dependencias independientes. GET, POST, PUT y DELETE se completan con PATCH y la integración React–API de HU-14 / SMARLIST-15. MySQL es la única persistencia activa. HU-15 (SMARLIST-19) agrega la categoría de producto en la API. HU-01 a HU-08 documentan la etapa original, cuyos requisitos históricos se conservan.
