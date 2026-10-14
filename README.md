@@ -174,7 +174,7 @@ Abrir en el navegador la dirección local indicada por Vite.
 
 #### Almacenamiento y errores
 
-HU-14 sustituye la persistencia activa de HU-07 por MySQL. Los datos históricos de `smartlist.products` se conservan sin leerlos, migrarlos, sobrescribirlos ni borrarlos automáticamente: no aparecerán en la lista conectada. `shoppingListStorage.js` permanece solo para comprobar el formato histórico en pruebas aisladas; la aplicación no lo importa.
+HU-14 sustituye la persistencia activa de HU-07 por la API y MySQL. El 2026-10-14 el responsable confirmó explícitamente que no se requiere migrar los productos antiguos de localStorage y autorizó retirar el módulo histórico y su prueba exclusiva (ticket SMARLIST-26; rama solicitada `feature/SMARTLIST-29-remove-unused-local-storage`). Los datos históricos de `smartlist.products` no se leen, migran, sobrescriben ni borran automáticamente: no aparecerán en la lista conectada. Se conservan las pruebas de persistencia mediante API y las que comprueban que esos datos locales permanecen intactos.
 
 La interfaz diferencia carga, error y lista vacía. Solo muestra cambios confirmados; un fallo conserva productos y formulario. Las escrituras se serializan y los controles se bloquean mientras se confirman. Tras una carga fallida, solucionar conexión y recargar. Sin reintentos automáticos, modo sin conexión, autenticación ni sincronización en tiempo real entre clientes. Filtros, contadores y borradores no se persisten.
 
@@ -255,7 +255,7 @@ Las funcionalidades se incorporan progresivamente mediante historias de usuario 
 
 SmartList es una aplicación educativa. No contempla autenticación, colaboración entre usuarios, compras en línea, pagos ni integración con servicios externos.
 
-La información se almacena localmente en el navegador y origen utilizados, sin sincronización entre dispositivos. Si el almacenamiento no está disponible, la aplicación continúa en memoria.
+Los productos se conservan en MySQL mediante la API. No existe persistencia alternativa en localStorage ni sincronización automática entre clientes. Si la API no está disponible, la interfaz informa del error y no presenta una escritura rechazada como guardada.
 
 ## Integración continua (CI)
 
