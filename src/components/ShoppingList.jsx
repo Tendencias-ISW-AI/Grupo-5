@@ -6,6 +6,7 @@ export default function ShoppingList({
   onTogglePurchased,
   onRemoveProduct,
   onUpdateProduct,
+  disabled = false,
 }) {
   if (items.length === 0) {
     return <p role="status">{emptyMessage}</p>;
@@ -17,6 +18,7 @@ export default function ShoppingList({
         <ShoppingItem
           key={item.id}
           item={item}
+          disabled={disabled}
           onTogglePurchased={onTogglePurchased}
           onRemoveProduct={onRemoveProduct}
           onUpdateProduct={onUpdateProduct}

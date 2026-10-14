@@ -2,47 +2,51 @@ import { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../src/App.jsx';
-import { STORAGE_KEY } from '../src/utils/shoppingListStorage.js';
 import {
   filterProducts,
   matchesSearch,
   matchesStatus,
   normalizeText,
 } from '../src/utils/productFilters.js';
+import { createProductsServer } from './helpers/productsServer.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 let container;
 let root;
+let server;
 
 beforeEach(() => {
   localStorage.clear();
+  server = createProductsServer();
+  vi.stubGlobal('fetch', server.fetch);
   container = document.createElement('div');
   document.body.append(container);
   root = createRoot(container);
 });
-afterEach(() => {
-  act(() => root.unmount());
+afterEach(async () => {
+  await act(async () => root.unmount());
   container.remove();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   localStorage.clear();
 });
 
-function render() {
-  act(() => root.render(createElement(App)));
+async function render() {
+  await act(async () => root.render(createElement(App)));
 }
 
-function setInputValue(input, value) {
+async function setInputValue(input, value) {
   const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
-  act(() => {
+  await act(async () => {
     setter.call(input, value);
     input.dispatchEvent(new Event('input', { bubbles: true }));
   });
 }
 
-function submit(name, quantity) {
-  setInputValue(container.querySelector('#product-name'), name);
-  setInputValue(container.querySelector('#product-quantity'), quantity);
-  act(() => container.querySelector('.shopping-form').dispatchEvent(
+async function submit(name, quantity) {
+  await setInputValue(container.querySelector('#product-name'), name);
+  await setInputValue(container.querySelector('#product-quantity'), quantity);
+  await act(async () => container.querySelector('.shopping-form').dispatchEvent(
     new Event('submit', { bubbles: true, cancelable: true }),
   ));
 }
@@ -51,8 +55,8 @@ function searchInput() {
   return container.querySelector('#product-search');
 }
 
-function search(value) {
-  setInputValue(searchInput(), value);
+async function search(value) {
+  await setInputValue(searchInput(), value);
 }
 
 function clearButton() {
@@ -60,10 +64,13 @@ function clearButton() {
     .find((button) => button.textContent === 'Limpiar búsqueda');
 }
 
-function selectFilter(label) {
+async function click(element) {
+  await act(async () => element.click());
+}
+
+async function selectFilter(label) {
   const group = container.querySelector('[role="group"]');
-  const button = [...group.querySelectorAll('button')].find((node) => node.textContent === label);
-  act(() => button.click());
+  await click([...group.querySelectorAll('button')].find((node) => node.textContent === label));
 }
 
 function names() {
@@ -74,10 +81,10 @@ function statusMessage() {
   return container.querySelector('[role="status"]')?.textContent;
 }
 
-function togglePurchased(name) {
+async function togglePurchased(name) {
   const row = [...container.querySelectorAll('li')]
     .find((node) => node.querySelector('.product-name').textContent.trim() === name);
-  act(() => row.querySelector('input[type="checkbox"]').click());
+  await click(row.querySelector('input[type="checkbox"]'));
 }
 
 const products = [
@@ -145,8 +152,8 @@ describe('HU-17: normalización y filtrado', () => {
 });
 
 describe('HU-17: búsqueda en la interfaz', () => {
-  it('CP-01: campo etiquetado, vacío y ubicado antes de filtros y lista', () => {
-    render(); submit('Arroz', '1');
+  it('CP-01: campo etiquetado, vacío y ubicado antes de filtros y lista', async () => {
+    await render(); await submit('Arroz', '1');
     const region = container.querySelector('[role="search"]');
     const input = searchInput();
     expect(region).not.toBeNull();
@@ -159,137 +166,136 @@ describe('HU-17: búsqueda en la interfaz', () => {
     expect(region.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it('CP-02 y CP-05: filtra en cada pulsación', () => {
-    render(); submit('Limón', '2'); submit('Leche', '1'); submit('Lechuga', '3'); submit('Arroz', '1');
-    search('l'); expect(names()).toEqual(['Limón', 'Leche', 'Lechuga']);
-    search('le'); expect(names()).toEqual(['Leche', 'Lechuga']);
-    search('lechu'); expect(names()).toEqual(['Lechuga']);
-    search('le'); expect(names()).toEqual(['Leche', 'Lechuga']);
-    search(''); expect(names()).toEqual(['Limón', 'Leche', 'Lechuga', 'Arroz']);
+  it('CP-02 y CP-05: filtra en cada pulsación', async () => {
+    await render(); await submit('Limón', '2'); await submit('Leche', '1'); await submit('Lechuga', '3'); await submit('Arroz', '1');
+    await search('l'); expect(names()).toEqual(['Limón', 'Leche', 'Lechuga']);
+    await search('le'); expect(names()).toEqual(['Leche', 'Lechuga']);
+    await search('lechu'); expect(names()).toEqual(['Lechuga']);
+    await search('le'); expect(names()).toEqual(['Leche', 'Lechuga']);
+    await search(''); expect(names()).toEqual(['Limón', 'Leche', 'Lechuga', 'Arroz']);
   });
 
-  it('CP-03, CP-04, CP-06 y CP-07: sin distinción de mayúsculas, tildes ni espacios', () => {
-    render(); submit('Limón', '2'); submit('Arroz integral', '1');
+  it('CP-03, CP-04, CP-06 y CP-07: sin distinción de mayúsculas, tildes ni espacios', async () => {
+    await render(); await submit('Limón', '2'); await submit('Arroz integral', '1');
     for (const query of ['limon', 'LIMÓN', '  limón  ']) {
-      search(query); expect(names()).toEqual(['Limón']);
+      await search(query); expect(names()).toEqual(['Limón']);
     }
-    search('arroz    integral'); expect(names()).toEqual(['Arroz integral']);
-    search('   '); expect(names()).toEqual(['Limón', 'Arroz integral']);
+    await search('arroz    integral'); expect(names()).toEqual(['Arroz integral']);
+    await search('   '); expect(names()).toEqual(['Limón', 'Arroz integral']);
     expect(statusMessage()).toBeUndefined();
   });
 
-  it('CP-14: muestra todos los registros con nombres repetidos en orden', () => {
-    render(); submit('Arroz', '2'); submit('Pan', '1'); submit('Arroz', '3');
-    search('arroz');
+  it('CP-14: muestra todos los registros con nombres repetidos en orden', async () => {
+    await render(); await submit('Arroz', '2'); await submit('Pan', '1'); await submit('Arroz', '3');
+    await search('arroz');
     const rows = [...container.querySelectorAll('li')].map((row) => row.textContent);
     expect(names()).toEqual(['Arroz', 'Arroz']);
     expect(rows[0]).toContain('Cantidad: 2');
     expect(rows[1]).toContain('Cantidad: 3');
   });
 
-  it('CP-08: combina la búsqueda con el filtro de estado', () => {
-    render(); submit('Leche', '1'); submit('Lechuga', '3'); submit('Arroz', '1');
-    togglePurchased('Lechuga');
-    search('lech');
+  it('CP-08: combina la búsqueda con el filtro de estado', async () => {
+    await render(); await submit('Leche', '1'); await submit('Lechuga', '3'); await submit('Arroz', '1');
+    await togglePurchased('Lechuga');
+    await search('lech');
     expect(names()).toEqual(['Leche', 'Lechuga']);
-    selectFilter('Pendientes'); expect(names()).toEqual(['Leche']);
-    selectFilter('Comprados'); expect(names()).toEqual(['Lechuga']);
-    selectFilter('Todos'); expect(names()).toEqual(['Leche', 'Lechuga']);
+    await selectFilter('Pendientes'); expect(names()).toEqual(['Leche']);
+    await selectFilter('Comprados'); expect(names()).toEqual(['Lechuga']);
+    await selectFilter('Todos'); expect(names()).toEqual(['Leche', 'Lechuga']);
     expect(searchInput().value).toBe('lech');
   });
 
-  it('CP-09: recalcula la vista al marcar, desmarcar, editar, eliminar y registrar', () => {
-    render(); submit('Leche', '1'); submit('Lechuga', '3'); submit('Arroz', '1');
-    search('lech'); selectFilter('Pendientes');
-    togglePurchased('Leche'); expect(names()).toEqual(['Lechuga']);
-    selectFilter('Comprados'); expect(names()).toEqual(['Leche']);
-    togglePurchased('Leche'); expect(names()).toEqual([]);
-    selectFilter('Todos');
+  it('CP-09: recalcula la vista al marcar, desmarcar, editar, eliminar y registrar', async () => {
+    await render(); await submit('Leche', '1'); await submit('Lechuga', '3'); await submit('Arroz', '1');
+    await search('lech'); await selectFilter('Pendientes');
+    await togglePurchased('Leche'); expect(names()).toEqual(['Lechuga']);
+    await selectFilter('Comprados'); expect(names()).toEqual(['Leche']);
+    await togglePurchased('Leche'); expect(names()).toEqual([]);
+    await selectFilter('Todos');
 
-    act(() => container.querySelector('li button[aria-label="Editar Lechuga"]').click());
-    const input = container.querySelector('li form [name="name"]');
-    setInputValue(input, 'Tomate');
-    act(() => container.querySelector('li form').dispatchEvent(
+    await click(container.querySelector('li button[aria-label="Editar Lechuga"]'));
+    await setInputValue(container.querySelector('li form [name="name"]'), 'Tomate');
+    await act(async () => container.querySelector('li form').dispatchEvent(
       new Event('submit', { bubbles: true, cancelable: true }),
     ));
     expect(names()).toEqual(['Leche']);
 
-    act(() => container.querySelector('li button[aria-label="Eliminar Leche"]').click());
+    await click(container.querySelector('li button[aria-label="Eliminar Leche"]'));
     expect(names()).toEqual([]);
 
-    submit('Leche deslactosada', '2'); expect(names()).toEqual(['Leche deslactosada']);
-    submit('Pan', '1'); expect(names()).toEqual(['Leche deslactosada']);
-    search(''); expect(names()).toEqual(['Tomate', 'Arroz', 'Leche deslactosada', 'Pan']);
+    await submit('Leche deslactosada', '2'); expect(names()).toEqual(['Leche deslactosada']);
+    await submit('Pan', '1'); expect(names()).toEqual(['Leche deslactosada']);
+    await search(''); expect(names()).toEqual(['Tomate', 'Arroz', 'Leche deslactosada', 'Pan']);
   });
 
-  it('CP-15: el resumen es global y la búsqueda no escribe en localStorage', () => {
-    render(); submit('Leche', '1'); submit('Arroz', '1');
-    const stored = localStorage.getItem(STORAGE_KEY);
-    const setItem = vi.spyOn(Storage.prototype, 'setItem');
-    search('leche'); search('xyz'); search('');
-    expect(setItem).not.toHaveBeenCalled();
-    expect(localStorage.getItem(STORAGE_KEY)).toBe(stored);
-    search('xyz');
+  it('CP-15: el resumen es global y la búsqueda no hace solicitudes a la API', async () => {
+    await render(); await submit('Leche', '1'); await submit('Arroz', '1');
+    const requests = server.fetch.mock.calls.length;
+    const stored = server.items();
+    await search('leche'); await search('xyz'); await search('');
+    expect(server.fetch.mock.calls).toHaveLength(requests);
+    expect(server.items()).toEqual(stored);
+    await search('xyz');
     const counts = [...container.querySelectorAll('.shopping-summary dd')].map((node) => node.textContent);
     expect(counts).toEqual(['2', '2', '0']);
   });
 
-  it('CP-15: la búsqueda no se conserva al remontar la aplicación', () => {
-    render(); submit('Leche', '1'); search('xyz');
-    act(() => root.unmount());
+  it('CP-15: la búsqueda no se conserva al remontar la aplicación', async () => {
+    await render(); await submit('Leche', '1'); await search('xyz');
+    await act(async () => root.unmount());
     root = createRoot(container);
-    render();
+    await render();
     expect(searchInput().value).toBe('');
     expect(names()).toEqual(['Leche']);
   });
 
-  it('descarta el borrador de un producto que deja de coincidir', () => {
-    render(); submit('Leche', '1');
-    act(() => container.querySelector('li button[aria-label="Editar Leche"]').click());
-    setInputValue(container.querySelector('li form [name="name"]'), 'Borrador');
-    search('xyz'); search('');
+  it('descarta el borrador de un producto que deja de coincidir', async () => {
+    await render(); await submit('Leche', '1');
+    await click(container.querySelector('li button[aria-label="Editar Leche"]'));
+    await setInputValue(container.querySelector('li form [name="name"]'), 'Borrador');
+    await search('xyz'); await search('');
     expect(names()).toEqual(['Leche']);
     expect(container.querySelector('li form')).toBeNull();
   });
 });
 
 describe('HU-17: estado vacío y limpieza', () => {
-  it('CP-10: mensaje claro cuando no hay coincidencias', () => {
-    render(); submit('Leche', '1');
-    search('  xyz ');
+  it('CP-10: mensaje claro cuando no hay coincidencias', async () => {
+    await render(); await submit('Leche', '1');
+    await search('  xyz ');
     expect(names()).toEqual([]);
     expect(statusMessage()).toBe('No se encontraron productos que coincidan con "xyz"');
-    selectFilter('Pendientes');
+    await selectFilter('Pendientes');
     expect(statusMessage()).toBe('No se encontraron productos que coincidan con "xyz"');
-    search('leche'); selectFilter('Comprados');
+    await search('leche'); await selectFilter('Comprados');
     expect(statusMessage()).toBe('No se encontraron productos que coincidan con "leche"');
-    search('');
+    await search('');
     expect(statusMessage()).toBe('No tienes productos comprados');
   });
 
-  it('CP-11: lista original vacía conserva su mensaje', () => {
-    render();
-    search('leche');
+  it('CP-11: lista original vacía conserva su mensaje', async () => {
+    await render();
+    await search('leche');
     expect(statusMessage()).toBe('Tu lista de compras está vacía');
   });
 
-  it('CP-12: limpiar vacía el campo, devuelve el foco y restaura la vista del filtro', () => {
-    render(); submit('Leche', '1'); submit('Arroz', '1'); togglePurchased('Arroz');
-    selectFilter('Pendientes'); search('xyz');
+  it('CP-12: limpiar vacía el campo, devuelve el foco y restaura la vista del filtro', async () => {
+    await render(); await submit('Leche', '1'); await submit('Arroz', '1'); await togglePurchased('Arroz');
+    await selectFilter('Pendientes'); await search('xyz');
     expect(clearButton().disabled).toBe(false);
-    act(() => clearButton().click());
+    await click(clearButton());
     expect(searchInput().value).toBe('');
     expect(document.activeElement).toBe(searchInput());
     expect(names()).toEqual(['Leche']);
     expect(statusMessage()).toBeUndefined();
   });
 
-  it('CP-13: el botón limpiar está deshabilitado sin búsqueda', () => {
-    render();
+  it('CP-13: el botón limpiar está deshabilitado sin búsqueda', async () => {
+    await render();
     const button = clearButton();
     expect(button.type).toBe('button');
     expect(button.disabled).toBe(true);
-    search('a'); expect(clearButton().disabled).toBe(false);
-    search(''); expect(clearButton().disabled).toBe(true);
+    await search('a'); expect(clearButton().disabled).toBe(false);
+    await search(''); expect(clearButton().disabled).toBe(true);
   });
 });

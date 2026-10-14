@@ -62,3 +62,17 @@ Sin cambios: `backend/**`, `src/hooks/useShoppingList.js`, `src/utils/shoppingLi
 - Quitar diacríticos hace que "n" y "ñ" coincidan ("pina" encuentra "Piña").
 - Las suites MySQL del backend no se ejecutaron (requieren base local) y no son relevantes, pues el backend no cambió.
 - La verificación visual en navegador queda indicada en `quickstart.md` para la revisión del PR.
+
+## Integración con SMARLIST-15 (main 8d352f1)
+
+`main` incorporó la integración full stack (PR #17): la lista se carga desde la API y `useShoppingList` es asíncrono. Se integró `main` en esta rama:
+
+- Conflicto solo en `README.md` (lista de funcionalidades y estado del proyecto); se conservó el texto de `main` y se añadió HU-17.
+- `src/App.jsx` se fusionó automáticamente: la búsqueda filtra los productos cargados desde la API, sin cambios en el hook.
+- `tests/productSearch.test.js`: las pruebas de interfaz se adaptaron al servidor simulado (`tests/helpers/productsServer.js`) y a operaciones asíncronas. CP-15 ahora verifica que buscar no hace solicitudes a la API (antes verificaba que no escribía en localStorage). Mismos 20 casos.
+
+| Comando (tras integrar main) | Resultado |
+|---|---|
+| Raíz `npm test` | 161/161 aprobadas |
+| Raíz `npm run build` | Correcta |
+| `backend/` `npm test` | 173 aprobadas, 65 omitidas (MySQL opt-in) |

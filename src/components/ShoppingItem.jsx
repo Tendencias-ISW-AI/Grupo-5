@@ -1,12 +1,16 @@
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { validateProduct } from '../hooks/useShoppingList.js';
 
-export default function ShoppingItem({ item, onTogglePurchased, onRemoveProduct, onUpdateProduct }) {
+export default function ShoppingItem({ item, onTogglePurchased, onRemoveProduct, onUpdateProduct, disabled = false }) {
   const fieldId = useId();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState('');
   const [quantity, setQuantity] = useState('');
   const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
+  const submitting = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
 
   function startEditing() {
     setName(item.name);
@@ -22,14 +26,20 @@ export default function ShoppingItem({ item, onTogglePurchased, onRemoveProduct,
     setErrors({});
   }
 
-  function saveChanges(event) {
+  async function saveChanges(event) {
     event.preventDefault();
+    if (submitting.current || disabled) return;
     const validated = validateProduct(name, quantity);
     if (Object.keys(validated.errors).length > 0) {
       setErrors(validated.errors);
       return;
     }
-    const result = onUpdateProduct(item.id, { name: validated.name, quantity: validated.quantity });
+    submitting.current = true;
+    setSaving(true);
+    const result = await onUpdateProduct(item.id, { name: validated.name, quantity: validated.quantity });
+    submitting.current = false;
+    if (!mounted.current) return;
+    setSaving(false);
     setErrors(result.errors);
     if (result.success) finishEditing();
   }
@@ -41,7 +51,7 @@ export default function ShoppingItem({ item, onTogglePurchased, onRemoveProduct,
           <div className="form-field">
             <label htmlFor={`${fieldId}-name`}>Nombre del producto</label>
             <input
-              id={`${fieldId}-name`} name="name" type="text" required autoFocus
+              id={`${fieldId}-name`} name="name" type="text" required autoFocus disabled={disabled || saving}
               value={name} onChange={(event) => setName(event.target.value)}
               aria-invalid={Boolean(errors.name)}
               aria-describedby={errors.name ? `${fieldId}-name-error` : undefined}
@@ -51,7 +61,7 @@ export default function ShoppingItem({ item, onTogglePurchased, onRemoveProduct,
           <div className="form-field">
             <label htmlFor={`${fieldId}-quantity`}>Cantidad</label>
             <input
-              id={`${fieldId}-quantity`} name="quantity" type="text" inputMode="numeric" required
+              id={`${fieldId}-quantity`} name="quantity" type="text" inputMode="numeric" required disabled={disabled || saving}
               value={quantity} onChange={(event) => setQuantity(event.target.value)}
               aria-invalid={Boolean(errors.quantity)}
               aria-describedby={errors.quantity ? `${fieldId}-quantity-error` : undefined}
@@ -60,8 +70,8 @@ export default function ShoppingItem({ item, onTogglePurchased, onRemoveProduct,
           </div>
           {errors.product && <p className="error" role="alert">{errors.product}</p>}
           <div className="edit-actions">
-            <button type="submit">Guardar</button>
-            <button type="button" onClick={finishEditing}>Cancelar</button>
+            <button type="submit" disabled={disabled || saving}>Guardar</button>
+            <button type="button" onClick={finishEditing} disabled={disabled || saving}>Cancelar</button>
           </div>
         </form>
       </li>
@@ -73,6 +83,7 @@ export default function ShoppingItem({ item, onTogglePurchased, onRemoveProduct,
       <input
         className="purchase-checkbox"
         type="checkbox"
+        disabled={disabled}
         checked={item.purchased}
         aria-label={`Comprado: ${item.name}`}
         onChange={() => onTogglePurchased(item.id)}
@@ -82,11 +93,12 @@ export default function ShoppingItem({ item, onTogglePurchased, onRemoveProduct,
       </span>
       <span>Cantidad: {item.quantity}</span>
       <span className="product-status">{item.purchased ? 'Comprado' : 'Pendiente'}</span>
-      <button type="button" className="edit-button" aria-label={`Editar ${item.name}`} onClick={startEditing}>
+      <button type="button" className="edit-button" aria-label={`Editar ${item.name}`} onClick={startEditing} disabled={disabled}>
         Editar
       </button>
       <button
         type="button"
+        disabled={disabled}
         className="remove-button"
         aria-label={`Eliminar ${item.name}`}
         onClick={() => onRemoveProduct(item.id)}
