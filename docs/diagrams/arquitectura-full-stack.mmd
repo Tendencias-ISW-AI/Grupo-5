@@ -1,0 +1,32 @@
+flowchart TB
+    User["Usuario"]
+
+    subgraph Frontend["Navegador - React y Vite, puerto local 5173"]
+        direction TB
+        UI["App.jsx y componentes<br/>ShoppingForm, ShoppingList y ShoppingItem<br/>ShoppingFilters y ShoppingSummary"]
+        Hook["useShoppingList.js<br/>Colección confirmada, carga y errores<br/>Cola de escrituras asíncronas"]
+        Client["productsApi.js<br/>fetch, JSON y validación de respuestas<br/>VITE_API_BASE_URL"]
+        UI -->|"Callbacks"| Hook
+        Hook -->|"Operaciones de productos"| Client
+        Hook -.->|"Estado React; filtros y resumen derivados en App"| UI
+    end
+
+    subgraph Backend["Servidor - Node.js y Express, puerto local 3000"]
+        direction TB
+        Express["app.js - API REST<br/>express.json y CORS<br/>GET /health sin consultar MySQL"]
+        Routes["Routes - productRoutes.js<br/>GET y POST /api/products<br/>PUT y DELETE /api/products/:id<br/>PATCH /api/products/:id/status"]
+        Controller["Controllers - productController.js<br/>Solicitudes y respuestas HTTP"]
+        Service["Services - productService.js<br/>Validación y reglas de negocio<br/>UUID y estado inicial en registro"]
+        Repo["Repositories - productRepository.js<br/>SQL parametrizado<br/>Transacciones para PUT y PATCH"]
+        Pool["Config - database.js<br/>Pool mysql2/promise<br/>Configuración mediante variables de entorno"]
+        Errors["Middleware - errorHandler.js<br/>Errores HTTP seguros"]
+        Express --> Routes --> Controller --> Service --> Repo --> Pool
+        Controller -.->|"next(error)"| Errors
+        Errors -.->|"Respuesta de error"| Express
+    end
+
+    DB[("MySQL<br/>smartlist_db.products")]
+    User --> UI
+    Client -->|"HTTP: GET, POST, PUT, PATCH y DELETE"| Express
+    Express -.->|"JSON confirmado o DELETE 204 sin cuerpo"| Client
+    Pool -->|"Consultas SQL y resultados"| DB

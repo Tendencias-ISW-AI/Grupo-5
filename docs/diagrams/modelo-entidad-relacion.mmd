@@ -1,0 +1,7 @@
+erDiagram
+    products {
+        varchar id PK "VARCHAR(36), NOT NULL, utf8mb4_bin; CHECK TRIM no vacio"
+        varchar name "VARCHAR(150), NOT NULL; CHECK TRIM no vacio"
+        int quantity "NOT NULL; CHECK quantity mayor que 0"
+        boolean purchased "NOT NULL; DEFAULT FALSE; CHECK IN (0, 1)"
+    }
