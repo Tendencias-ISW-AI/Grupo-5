@@ -10,7 +10,7 @@ vi.mock('../src/config/database.js', () => ({ getPool }));
 import app from '../src/app.js';
 
 const id = randomUUID();
-const row = { id, name: 'Arroz', quantity: 2, purchased: 0 };
+const row = { id, name: 'Arroz', quantity: 2, purchased: 0, category: 'Despensa' };
 beforeEach(() => {
   vi.resetAllMocks();
   getPool.mockReturnValue({ getConnection: vi.fn().mockResolvedValue(connection) });
@@ -24,7 +24,7 @@ describe('SMARLIST-15 PATCH de estado', () => {
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ ...row, purchased });
     expect(connection.execute.mock.calls).toEqual([
-      ['SELECT id, name, quantity, purchased FROM products WHERE id = ? FOR UPDATE', [id]],
+      ['SELECT id, name, quantity, purchased, category FROM products WHERE id = ? FOR UPDATE', [id]],
       ['UPDATE products SET purchased = ? WHERE id = ?', [Number(purchased), id]],
     ]);
     expect(connection.commit).toHaveBeenCalledOnce(); expect(connection.release).toHaveBeenCalledOnce();

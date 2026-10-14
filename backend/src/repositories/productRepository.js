@@ -1,14 +1,14 @@
 import { getPool } from '../config/database.js';
 
 export async function listProducts() {
-  const [rows] = await getPool().execute('SELECT id, name, quantity, purchased FROM products ORDER BY BINARY id ASC');
+  const [rows] = await getPool().execute('SELECT id, name, quantity, purchased, category FROM products ORDER BY BINARY id ASC');
   return rows;
 }
 
 export async function insertProduct(product) {
   const [result] = await getPool().execute(
-    'INSERT INTO products (id, name, quantity, purchased) VALUES (?, ?, ?, ?)',
-    [product.id, product.name, product.quantity, product.purchased ? 1 : 0],
+    'INSERT INTO products (id, name, quantity, purchased, category) VALUES (?, ?, ?, ?, ?)',
+    [product.id, product.name, product.quantity, product.purchased ? 1 : 0, product.category],
   );
   if (result.affectedRows !== 1) throw new Error('No se confirmó la inserción del producto.');
 }
@@ -24,7 +24,7 @@ async function updateProductFields(id, query, values, changes) {
   try {
     await connection.beginTransaction();
     const [rows] = await connection.execute(
-      'SELECT id, name, quantity, purchased FROM products WHERE id = ? FOR UPDATE', [id],
+      'SELECT id, name, quantity, purchased, category FROM products WHERE id = ? FOR UPDATE', [id],
     );
     if (!rows.length) {
       await connection.rollback();
@@ -47,9 +47,12 @@ async function updateProductFields(id, query, values, changes) {
   }
 }
 
+// HU-15: sin categoría en la solicitud, COALESCE conserva la almacenada y la fila bloqueada la devuelve.
 export function updateProductById(id, data) {
-  return updateProductFields(id, 'UPDATE products SET name = ?, quantity = ? WHERE id = ?',
-    [data.name, data.quantity], { name: data.name, quantity: data.quantity });
+  const changes = { name: data.name, quantity: data.quantity };
+  if (data.category !== undefined) changes.category = data.category;
+  return updateProductFields(id, 'UPDATE products SET name = ?, quantity = ?, category = COALESCE(?, category) WHERE id = ?',
+    [data.name, data.quantity, data.category ?? null], changes);
 }
 
 export function updateProductStatusById(id, purchased) {

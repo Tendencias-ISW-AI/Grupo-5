@@ -246,7 +246,7 @@ La información se almacena localmente en el navegador y origen utilizados, sin 
 
 ## Ampliación: backend y Spec-Driven Development
 
-El frontend conserva estructura y comandos en la raíz. Backend en `backend/` con dependencias independientes. GET, POST, PUT y DELETE se completan con PATCH y la integración React–API de HU-14 / SMARLIST-15. MySQL es la única persistencia activa. HU-01 a HU-08 documentan la etapa original, cuyos requisitos históricos se conservan.
+El frontend conserva estructura y comandos en la raíz. Backend en `backend/` con dependencias independientes. GET, POST, PUT y DELETE se completan con PATCH y la integración React–API de HU-14 / SMARLIST-15. MySQL es la única persistencia activa. HU-15 (SMARLIST-19) agrega la categoría de producto en la API. HU-01 a HU-08 documentan la etapa original, cuyos requisitos históricos se conservan.
 
 ### Instalar y ejecutar el backend
 
@@ -318,6 +318,16 @@ DELETE exige UUID hexadecimal con estructura 8-4-4-4-12, sin espacios y sin rest
 El repositorio utiliza una única sentencia parametrizada `DELETE FROM products WHERE id = ?`; cero filas afectadas significa inexistencia y una fila confirma eliminación. No se selecciona por nombre o estado, no hay borrado lógico ni recuperación, y el registro no reaparece tras consultar o reiniciar.
 
 Para comprobarlo, crear un fixture propio mediante POST, registrar su UUID, eliminarlo y consultar GET; repetir DELETE debe devolver 404. No usar productos preexistentes como datos de prueba. Las suites reales verifican integridad, persistencia y limpieza limitada a IDs propios. Artefactos y resultados: `specs/004-eliminacion-productos/`. Frontend, localStorage y esquema no cambian.
+
+### HU-15 / SMARLIST-19: categorías de productos (backend)
+
+Cada producto tiene `category`, uno de un conjunto fijo: `Frutas y verduras`, `Carnes y pescados`, `Lácteos`, `Panadería`, `Despensa`, `Bebidas`, `Aseo` y `Otros` (por defecto). GET, POST y PUT devuelven el producto con `id`, `name`, `quantity`, `purchased` y `category`.
+
+POST y PUT aceptan `category` opcional. POST sin categoría crea el producto en `Otros`; PUT sin categoría conserva la actual. La categoría debe coincidir exactamente con un valor de la lista (sin normalizar mayúsculas, tildes ni espacios); cualquier otro valor, incluido `null`, responde 400 antes de acceder a MySQL.
+
+La columna es `category VARCHAR(30) NOT NULL DEFAULT 'Otros'`. Para bases existentes, ejecutar `npm run db:init`: si la tabla `products` coincide con la estructura anterior, se agrega la columna con `database/add-product-category.sql` y todos los productos existentes quedan en `Otros` (la salida indica `"categoryAdded":true`). Repetir la inicialización no ejecuta DDL.
+
+El cliente `src/services/productsApi.js` acepta `category` como quinto atributo para seguir validando las respuestas de la API. El selector de categoría en el formulario y su visualización en la lista quedan pendientes en el frontend. Artefactos y resultados: `specs/006-categorias-productos/`.
 
 ### Spec Kit con Codex
 

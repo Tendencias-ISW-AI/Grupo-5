@@ -40,14 +40,14 @@ beforeEach(() => {
 });
 
 describe('SMARLIST-12 / HU-11 registro', () => {
-  it('CA01/02/04/05/06: POST201 con UUID, cuatro atributos y pendiente; INSERT parametrizado', async () => {
+  it('CA01/02/04/05/06: POST201 con UUID, atributos, pendiente y categoría Otros; INSERT parametrizado', async () => {
     const response = await request(app).post('/api/products').send({ name: '  Arroz  ', quantity: 2 });
     expect(response.status).toBe(201);
     expect(response.headers['content-type']).toMatch(/application\/json/);
-    expect(response.body).toEqual({ id: expect.stringMatching(uuid), name: 'Arroz', quantity: 2, purchased: false });
+    expect(response.body).toEqual({ id: expect.stringMatching(uuid), name: 'Arroz', quantity: 2, purchased: false, category: 'Otros' });
     expect(execute).toHaveBeenCalledExactlyOnceWith(
-      'INSERT INTO products (id, name, quantity, purchased) VALUES (?, ?, ?, ?)',
-      [response.body.id, 'Arroz', 2, 0],
+      'INSERT INTO products (id, name, quantity, purchased, category) VALUES (?, ?, ?, ?, ?)',
+      [response.body.id, 'Arroz', 2, 0, 'Otros'],
     );
   });
 
@@ -62,11 +62,11 @@ describe('SMARLIST-12 / HU-11 registro', () => {
   });
 
   it('el repositorio vincula texto de apariencia SQL sin interpolarlo', async () => {
-    const product = { id: 'test-id', name: "Arroz'); DELETE FROM products; --", quantity: 2, purchased: false };
+    const product = { id: 'test-id', name: "Arroz'); DELETE FROM products; --", quantity: 2, purchased: false, category: 'Otros' };
     await insertProduct(product);
     expect(execute).toHaveBeenCalledExactlyOnceWith(
-      'INSERT INTO products (id, name, quantity, purchased) VALUES (?, ?, ?, ?)',
-      [product.id, product.name, 2, 0],
+      'INSERT INTO products (id, name, quantity, purchased, category) VALUES (?, ?, ?, ?, ?)',
+      [product.id, product.name, 2, 0, 'Otros'],
     );
   });
 

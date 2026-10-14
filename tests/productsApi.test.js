@@ -34,6 +34,14 @@ describe('HU-14 servicio HTTP', () => {
   it.each([{}, [{ id: 'x', name: 'Pan', quantity: '2', purchased: false }], [{ id: '', name: 'Pan', quantity: 2, purchased: false }], [{ id: 'x', name: 'Pan', quantity: 2, purchased: 1 }]])('rechaza colección incompatible %j', async body => {
     server.fetch.mockResolvedValueOnce(jsonResponse(body)); await expect(getProducts()).rejects.toThrow('respuesta');
   });
+  it('SMARLIST-19: acepta productos con category de la API y rechaza atributos desconocidos', async () => {
+    const item = { id: 'uno', name: 'Leche', quantity: 1, purchased: false, category: 'Lácteos' };
+    server.fetch.mockResolvedValueOnce(jsonResponse([item])); expect(await getProducts()).toEqual([item]);
+    server.fetch.mockResolvedValueOnce(jsonResponse(item)); expect(await updateProduct('uno', { name: 'Leche', quantity: 1 })).toEqual(item);
+    for (const invalid of [{ ...item, category: '' }, { ...item, category: null }, { ...item, category: 5 }, { id: 'uno', name: 'Leche', quantity: 1, purchased: false, color: 'rojo' }, { ...item, color: 'rojo' }]) {
+      server.fetch.mockResolvedValueOnce(jsonResponse([invalid])); await expect(getProducts()).rejects.toThrow('respuesta');
+    }
+  });
   it('rechaza IDs duplicados y respuesta PUT con otra identidad', async () => {
     const item = { id: 'uno', name: 'Pan', quantity: 2, purchased: false };
     server.fetch.mockResolvedValueOnce(jsonResponse([item, item])); await expect(getProducts()).rejects.toThrow('respuesta');

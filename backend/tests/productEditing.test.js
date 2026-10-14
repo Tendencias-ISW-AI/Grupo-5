@@ -10,7 +10,7 @@ import app from '../src/app.js';
 import { createProduct, updateProduct } from '../src/services/productService.js';
 import { updateProductById } from '../src/repositories/productRepository.js';
 
-const row = Object.freeze({ id: 'id-original', name: 'Pan', quantity: 1, purchased: 0 });
+const row = Object.freeze({ id: 'id-original', name: 'Pan', quantity: 1, purchased: 0, category: 'Otros' });
 const body = { name: '  Arroz integral  ', quantity: 3 };
 const invalid = [
   { name: '', quantity: 1 }, { name: ' \t ', quantity: 1 }, { name: 2, quantity: 1 },
@@ -30,12 +30,12 @@ beforeEach(() => {
 });
 
 describe('SMARLIST-13 / HU-12 edición', () => {
-  it.each([0, 1])('CA01/02/04/07:200 cuatro atributos,ID original y estado %s conservado', async purchased => {
+  it.each([0, 1])('CA01/02/04/07:200 atributos,ID original,categoría y estado %s conservados', async purchased => {
     mocks.execute.mockResolvedValueOnce([[{ ...row, purchased }], []]).mockResolvedValueOnce([{ affectedRows: 1 }, []]);
     const response = await request(app).put(`/api/products/${row.id}`).send(body);
     expect(response.status).toBe(200);
     expect(response.headers['content-type']).toMatch(/application\/json/);
-    expect(response.body).toEqual({ id: row.id, name: 'Arroz integral', quantity: 3, purchased: purchased === 1 });
+    expect(response.body).toEqual({ id: row.id, name: 'Arroz integral', quantity: 3, purchased: purchased === 1, category: 'Otros' });
     expect(mocks.beginTransaction).toHaveBeenCalledOnce(); expect(mocks.commit).toHaveBeenCalledOnce();
     expect(mocks.release).toHaveBeenCalledOnce(); expect(mocks.rollback).not.toHaveBeenCalled();
     expect(row.name).toBe('Pan');
@@ -45,8 +45,8 @@ describe('SMARLIST-13 / HU-12 edición', () => {
     const id = "x' OR '1'='1";
     await updateProductById(id, { name: "Arroz'); SQL --", quantity: 2 });
     expect(mocks.execute.mock.calls).toEqual([
-      ['SELECT id, name, quantity, purchased FROM products WHERE id = ? FOR UPDATE', [id]],
-      ['UPDATE products SET name = ?, quantity = ? WHERE id = ?', ["Arroz'); SQL --", 2, id]],
+      ['SELECT id, name, quantity, purchased, category FROM products WHERE id = ? FOR UPDATE', [id]],
+      ['UPDATE products SET name = ?, quantity = ?, category = COALESCE(?, category) WHERE id = ?', ["Arroz'); SQL --", 2, null, id]],
     ]);
     expect(mocks.getConnection).toHaveBeenCalledOnce();
   });

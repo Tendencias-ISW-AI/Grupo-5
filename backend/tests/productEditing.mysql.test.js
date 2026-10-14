@@ -98,7 +98,7 @@ describe.skipIf(process.env.RUN_MYSQL_TESTS !== '1')('SMARLIST-13 HU-12 MySQL y 
     const before = await readProducts();
     const id = ids[purchased];
     const response = await send('PUT', `/api/products/${id}`, { name: '  Arroz integral  ', quantity: 3 });
-    expect(response).toEqual({ status: 200, body: { id, name: 'Arroz integral', quantity: 3, purchased: purchased === 1 } });
+    expect(response).toEqual({ status: 200, body: { id, name: 'Arroz integral', quantity: 3, purchased: purchased === 1, category: 'Otros' } });
     const after = await readProducts();
     expect(after.find(product => product.id === id)).toEqual(response.body);
     expect(after.filter(product => product.id !== id)).toEqual(before.filter(product => product.id !== id));

@@ -9,13 +9,13 @@ beforeEach(() => vi.clearAllMocks());
 describe('Servicio de consulta', () => {
   it('conserva atributos, orden y registros con nombres repetidos, sin mutar filas', async () => {
     const rows = Object.freeze([
-      Object.freeze({ id: 'A', name: 'Arroz', quantity: 2, purchased: 0 }),
-      Object.freeze({ id: 'b', name: 'Arroz', quantity: 5, purchased: 1 }),
+      Object.freeze({ id: 'A', name: 'Arroz', quantity: 2, purchased: 0, category: 'Despensa' }),
+      Object.freeze({ id: 'b', name: 'Arroz', quantity: 5, purchased: 1, category: 'Otros' }),
     ]);
     listProducts.mockResolvedValue(rows);
     expect(await getProducts()).toEqual([
-      { id: 'A', name: 'Arroz', quantity: 2, purchased: false },
-      { id: 'b', name: 'Arroz', quantity: 5, purchased: true },
+      { id: 'A', name: 'Arroz', quantity: 2, purchased: false, category: 'Despensa' },
+      { id: 'b', name: 'Arroz', quantity: 5, purchased: true, category: 'Otros' },
     ]);
     expect(rows[1].purchased).toBe(1);
   });
@@ -26,13 +26,13 @@ describe('Servicio de consulta', () => {
   });
 
   it.each([
-    { id: '', name: 'Arroz', quantity: 1, purchased: 0 },
-    { id: 'a', name: '  ', quantity: 1, purchased: 0 },
-    { id: 'a', name: ' Arroz ', quantity: 1, purchased: 0 },
-    { id: 'a', name: 'Arroz', quantity: 0, purchased: 0 },
-    { id: 'a', name: 'Arroz', quantity: 1.5, purchased: 0 },
-    { id: 'a', name: 'Arroz', quantity: '2', purchased: 0 },
-    { id: 'a', name: 'Arroz', quantity: 1, purchased: 2 },
+    { id: '', name: 'Arroz', quantity: 1, purchased: 0, category: 'Otros' },
+    { id: 'a', name: '  ', quantity: 1, purchased: 0, category: 'Otros' },
+    { id: 'a', name: ' Arroz ', quantity: 1, purchased: 0, category: 'Otros' },
+    { id: 'a', name: 'Arroz', quantity: 0, purchased: 0, category: 'Otros' },
+    { id: 'a', name: 'Arroz', quantity: 1.5, purchased: 0, category: 'Otros' },
+    { id: 'a', name: 'Arroz', quantity: '2', purchased: 0, category: 'Otros' },
+    { id: 'a', name: 'Arroz', quantity: 1, purchased: 2, category: 'Otros' },
   ])('rechaza filas incompatibles sin convertirlas silenciosamente: %j', async row => {
     listProducts.mockResolvedValue([row]);
     await expect(getProducts()).rejects.toThrow();

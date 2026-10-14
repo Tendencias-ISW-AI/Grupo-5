@@ -2,8 +2,14 @@ function baseUrl() {
   return (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api').replace(/\/+$/, '');
 }
 
+// HU-15 (SMARLIST-19): la API agrega category; se acepta como quinto atributo de texto no vacío.
+function hasValidKeys(item) {
+  const keys = Object.keys(item).length;
+  return keys === 4 || (keys === 5 && typeof item.category === 'string' && item.category.trim().length > 0);
+}
+
 function isProduct(item) {
-  return item && Object.keys(item).length === 4
+  return item && hasValidKeys(item)
     && typeof item.id === 'string' && item.id.isWellFormed() && item.id.length <= 36
     && item.id.trim().length > 0 && item.id === item.id.trim()
     && typeof item.name === 'string' && item.name.trim().length > 0
